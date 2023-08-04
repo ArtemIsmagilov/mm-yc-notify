@@ -218,10 +218,16 @@
   Вы можете создать только один планировщик. С помощью `update` можно обновить планировщик,
   задать другие параметры для уведомлений
   ![notifications_create](imgs/notifications_create.PNG)
+  
+  Ответное сообщение о созданном планировщике
+  ![notification_created](imgs/notifications_created.PNG)
 
 - /yandex-calendar notifications delete <br>
   Попытка удалить несуществующий планировщик
   ![notifications_delete](imgs/notifications_delete.PNG)
+
+- Уведомление (за 10 минут до конференции)/(ежедневное обо всех сегодня конференциях)
+  ![notify](imgs/upcoming_conference.PNG)
 
 ## Полезные ссылки
 
