@@ -1,0 +1,24 @@
+version: '3.9'
+
+services:
+
+  db:
+    image: postgres
+    restart: "unless-stopped"
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: postgres
+
+    ports:
+      - 5432:5432
+
+  adminer:
+    image: adminer
+    restart: "unless-stopped"
+
+
+
+    ports:
+      - 8080:8080

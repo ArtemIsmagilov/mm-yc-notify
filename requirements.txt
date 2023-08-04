@@ -1,0 +1,12 @@
+caldav==1.3.6
+icalendar==5.0.7
+Flask==2.3.2
+python-dotenv==1.0.0
+requests==2.31.0
+mattermostdriver==7.3.2
+gunicorn==21.2.0
+APScheduler==3.10.1
+SQLAlchemy==2.0.19
+cryptography==41.0.2
+psycopg2-binary==2.9.6
+Cython==3.0.0
