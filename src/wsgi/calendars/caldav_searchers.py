@@ -7,7 +7,7 @@ from caldav import Calendar
 def find_conferences(calendars: list[Calendar], dates: list[datetime, datetime]) -> list[Conference]:
     result = []
 
-    timezone = dates[0].tzinfo.key
+    timezone = str(dates[0].tzinfo)
 
     for cal in calendars:
 
@@ -35,7 +35,7 @@ def find_conferences_today(cal: Calendar, dates: list[datetime, datetime]) -> li
 
     events = cal.search(start=dates[0], end=dates[1], event=True, expand=True, sort_keys=['dtstart'])
 
-    timezone = dates[0].tzinfo.key
+    timezone = str(dates[0].tzinfo)
 
     for e in events:
 

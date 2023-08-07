@@ -32,7 +32,7 @@
 
 ## Проблема
 
-> Плагин местами не работает, не правильный календарь
+> Плагин [YandexCalendar(plugin)](https://github.com/LugaMuga/mattermost-yandex-calendar-plugin) местами не работает
 
 ## Решение
 

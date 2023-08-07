@@ -5,7 +5,7 @@
 #### calendar name: {{ calendar_name }}
 
 {% if c.dtstart %}*  Start: {{ c.dtstart }}{% endif %}  
-{% if c.dtend %}* End: {{ c.dtstart }}{% endif %}
+{% if c.dtend %}* End: {{ c.dtend }}{% endif %}
 {% if c.summary %}* Summary: {{ c.summary }}{% endif %}
 {% if c.created %}* Created: {{ c.created }}{% endif %} 
 {% if c.last_modified %}* Last modified: {{ c.last_modified }}{% endif %}

@@ -2,7 +2,7 @@
 ### calendar name: {{ c }}
 {% for a in e %}
 {% if a.dtstart %}*  Start: {{ a.dtstart }}{% endif %}  
-{% if a.dtend %}* End: {{ a.dtstart }}{% endif %}
+{% if a.dtend %}* End: {{ a.dtend }}{% endif %}
 {% if a.summary %}* Summary: {{ a.summary }}{% endif %}
 {% if a.created %}* Created: {{ a.created }}{% endif %} 
 {% if a.last_modified %}* Last modified: {{ a.last_modified }}{% endif %}
