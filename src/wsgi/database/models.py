@@ -6,6 +6,26 @@ engine = create_engine(DB_URL, echo=True)
 
 metadata_obj = MetaData()
 
+SCHEDULER_CONF = {
+    'apscheduler.jobstores.default': {
+        'type': 'sqlalchemy',
+        'engine': engine,
+        'metadata': metadata_obj,
+
+    },
+    'apscheduler.executors.default': {
+        'class': 'apscheduler.executors.pool:ThreadPoolExecutor',
+        'max_workers': '20'
+    },
+    'apscheduler.executors.processpool': {
+        'type': 'processpool',
+        'max_workers': '5'
+    },
+    'apscheduler.job_defaults.coalesce': 'true',
+    'apscheduler.job_defaults.max_instances': '1',
+    'apscheduler.timezone': 'UTC',
+}
+
 
 class User:
     user_table = Table(

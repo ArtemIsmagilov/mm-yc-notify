@@ -1,4 +1,4 @@
-from wsgi.database.models import User, metadata_obj, engine
+from wsgi.database.models import User, metadata_obj, engine, SCHEDULER_CONF
 
 import click
 

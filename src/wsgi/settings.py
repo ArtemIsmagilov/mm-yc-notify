@@ -37,21 +37,3 @@ MM_BOT_OPTIONS = {
 
 
 DB_URL = os.environ['DB_URL']
-
-SCHEDULER_CONF = {
-    'apscheduler.jobstores.default': {
-        'type': 'sqlalchemy',
-        'url': DB_URL,
-    },
-    'apscheduler.executors.default': {
-        'class': 'apscheduler.executors.pool:ThreadPoolExecutor',
-        'max_workers': '20'
-    },
-    'apscheduler.executors.processpool': {
-        'type': 'processpool',
-        'max_workers': '5'
-    },
-    'apscheduler.job_defaults.coalesce': 'true',
-    'apscheduler.job_defaults.max_instances': '1',
-    'apscheduler.timezone': 'UTC',
-}

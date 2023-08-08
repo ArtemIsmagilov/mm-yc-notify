@@ -1,4 +1,5 @@
-from wsgi.settings import *
+from wsgi.settings import DEBUG
+from wsgi.database.db import SCHEDULER_CONF
 
 from flask import current_app
 from apscheduler.schedulers.background import BackgroundScheduler
