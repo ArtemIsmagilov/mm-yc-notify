@@ -49,9 +49,9 @@ SCHEDULER_CONF = {
     },
     'apscheduler.executors.processpool': {
         'type': 'processpool',
-        'max_workers': '1'
+        'max_workers': '5'
     },
     'apscheduler.job_defaults.coalesce': 'true',
-    'apscheduler.job_defaults.max_instances': '5',
+    'apscheduler.job_defaults.max_instances': '1',
     'apscheduler.timezone': 'UTC',
 }
