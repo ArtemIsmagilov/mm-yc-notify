@@ -174,16 +174,19 @@
     sudo docker compose -f ./microservice/docker-compose.yml up
     ```
 - При разработке, удобно запустить отдельно postgres и app
-    + app
-      ```bash
-      cd ../
-      bash run_app.sh
-      ```
     + postgres
       ```bash
       cd /psql
       sudo docker compose up
       ```
+  
+    + app
+      ```bash
+      cd ../
+      flask init-db
+      bash run_app.sh
+      ```
+
 
 ## Как работает
 
