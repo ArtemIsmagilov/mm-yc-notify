@@ -13,6 +13,7 @@
 - [Команды](#команды)
 - [Получить токен](#получить-токен)
 - [Запуск](#запуск)
+- [Интеграция в производственной среде](#интеграция-в-производственной-среде)
 - [Как работает](#как-работает)
 - [Полезные ссылки](#полезные-ссылки)
 - [Вопрос-ответ](#вопрос-ответ)
@@ -186,6 +187,53 @@
       flask init-db
       bash run_app.sh
       ```
+
+## Интеграция в производственной среде
+
+- получить сертификаты для зашифрованного трафика https://certbot.eff.org/
+- развернуть докер контейнер маттермоста с HTTPS https://docs.mattermost.com/install/install-docker.html
+- в `wsgi/gunicorn.conf.py` меняем протокол на https, хост и порт на локальные `127.0.0.1:5000 `, добавляем сертификаты
+  и указываем пути к ним. в взависимости от потребностей настраиваем количество работников и потоков. В зависимости от
+  вашей кофигурации, меняем переменные в `.env`
+- добавляем nginx конфигурацию для проксирования запросов к интеграции на локальный хост и порт
+  ```bash
+  sudo nano /etc/nginx/sites-enabled/app_nginx
+  ```
+  ```
+  # in /etc/nginx/sites-enabled
+  # reverse proxy app
+  # http
+    
+  #server {
+  #    listen 10081;
+  #    listen [::]:10081;
+  #    location / {
+  #        include proxy_params;
+  #        proxy_pass http://127.0.0.1:5000/;
+  #    }
+  #}
+    
+  # https
+  server {
+      listen 10441 ssl; # managed by Certbot
+      listen [::]:10441 ssl;
+      ssl_certificate /etc/letsencrypt/live/CHANGE/fullchain.pem; # managed by Certbot
+      ssl_certificate_key /etc/letsencrypt/live/CHANGE/privkey.pem; # managed by Certbot
+      include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+      ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+      server_name CHANGE; # managed by Certbot
+    
+      location / {
+          include proxy_params;
+          proxy_pass https://127.0.0.1:5000/;
+      }
+  }
+  ```
+  ```bash
+  sudo systemctl reload nginx
+  ```
+- После добавления интеграции не забудьте создать токен, предоставить права и добавить в `src/.env`
+- Перезапустить докер контейнер.
 
 ## Как работает
 
