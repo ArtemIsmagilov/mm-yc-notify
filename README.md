@@ -179,14 +179,13 @@
       cd /psql
       sudo docker compose up
       ```
-  
+
     + app
       ```bash
       cd ../
       flask init-db
       bash run_app.sh
       ```
-
 
 ## Как работает
 
@@ -221,7 +220,7 @@
   Вы можете создать только один планировщик. С помощью `update` можно обновить планировщик,
   задать другие параметры для уведомлений
   ![notifications_create](imgs/notifications_create.PNG)
-  
+
   Ответное сообщение о созданном планировщике
   ![notification_created](imgs/notifications_created.PNG)
 
@@ -243,6 +242,7 @@
 - Mattermost Yandex Calendar Plugin (CALDav) - https://github.com/LugaMuga/mattermost-yandex-calendar-plugin
 - Команды Postgresql - https://www.postgresqltutorial.com/postgresql-administration/psql-commands/
 - Команды SQL - https://www.w3schools.com/sql/default.asp
+- Mattermost troubleshooting - https://docs.mattermost.com/install/troubleshooting.html
 
 ## Вопрос-ответ
 

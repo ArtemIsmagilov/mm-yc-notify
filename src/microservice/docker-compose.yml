@@ -33,6 +33,7 @@ services:
 
     command: >
       bash -c "pip install -r requirements.txt
+      && python3 patch_driver.py
       && flask init-db
       && bash run_app.sh
       "

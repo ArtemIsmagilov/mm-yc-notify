@@ -128,7 +128,6 @@ def notify_next_conference_job(user_id: str, calendar_name: str, uid: str, befor
                 replace_existing=True,
                 run_date=next_conf.dtstart,
 
-
             )
 
     for next_conference in first_conferences[1:]:
