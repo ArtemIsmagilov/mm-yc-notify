@@ -42,9 +42,6 @@ def update_notifications(user: Row, request: Request) -> dict:
     acting_user = context['acting_user']
     mm_user_id = acting_user['id']
 
-    sd.delete_jobs_by_mm_user_id(mm_user_id)
-    db.YandexCalendar.remove_cals(user_id=user.id)
-
     return create_notifications(user, request)
 
 
@@ -131,6 +128,9 @@ def continue_create_notifications(user: Row, request: Request) -> dict:
     context = request.json['context']
     acting_user = context['acting_user']
     mm_user_id, mm_username = acting_user['id'], acting_user['username']
+
+    sd.delete_jobs_by_mm_user_id(mm_user_id)
+    db.YandexCalendar.remove_cals(user_id=user.id)
 
     values = request.json["values"]
 
