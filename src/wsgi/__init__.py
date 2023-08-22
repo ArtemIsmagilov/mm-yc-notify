@@ -4,11 +4,6 @@ def create_app(test_config=None):
 
     from wsgi.constants import UTCs
     from wsgi.settings import MM_BOT_OPTIONS, MM_APP_TOKEN, DEBUG
-    from wsgi.bots.mm_bot import MMBot
-
-    if MM_APP_TOKEN:
-        bot = MMBot(MM_BOT_OPTIONS)
-        bot.check_correct_access_token()
 
     app = Flask(__name__, instance_relative_config=True, static_url_path='/static', static_folder='./static')
     os.makedirs(app.instance_path, exist_ok=True)
@@ -39,7 +34,6 @@ def create_app(test_config=None):
     def load_user():
         get_user(request)
 
-    from .constants import EXPAND_DICT
     from .app_handlers import get_user, static_file
 
     from .connections import connection_app
@@ -51,13 +45,13 @@ def create_app(test_config=None):
     from .notifications import notification_app
     app.register_blueprint(notification_app.bp)
 
+    from .checks import check_app
+    app.register_blueprint(check_app.bp)
+
     from .database import db
     db.init_app(app)
 
     from .schedulers import sd
     sd.init_app(app)
-
-    from .checks import check_app
-    app.register_blueprint(check_app.bp)
 
     return app

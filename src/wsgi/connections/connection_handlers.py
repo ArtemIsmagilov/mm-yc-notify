@@ -1,107 +1,82 @@
 from wsgi.calendars import caldav_api
 from wsgi.database import db
-from wsgi.notifications.jobs import delete_jobs_by_user_id
+from wsgi.schedulers import sd
 
-import logging, traceback
 from flask import Request
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.engine import Row
 
 
 def profile(request: Request):
-    pass
-
-
-def update_account(request: Request):
-    values = request.json['values']
-
-    user_id = request.json['context']['acting_user']['id']
-    login = values['login']
-    token = values['token']
-    timezone = values['timezone']['value']
-
-    principal = caldav_api.take_principal(db.User(user_id, login, token, timezone))
-    if type(principal) is dict:
-        return principal
-
-    try:
-
-        msg = {
-
-            'type': 'ok',
-            'text': 'Successfully UPDATE integration with yandex calendar. ' \
-                    'Your scheduler notifications was deleted if is existed',
-
-        }
-
-        result = db.User.update_user(user_id, login, token, timezone)
-
-    except SQLAlchemyError as exp:
-
-        msg = {'type': 'error', 'text': f'Error updating integration with yandex calendar.'}
-        logging.error(f'Error updating user in DB, {user_id=}. Traceback: {traceback.print_exc()}')
-
-    else:
-
-        delete_jobs_by_user_id(user_id)
-
-    return msg
-
-
-def delete_account(request: Request):
-    user_id = request.json['context']['acting_user']['id']
-
-    msg = {
-
+    return {
         'type': 'ok',
-        'text': 'Successfully REMOVE integration with yandex calendar. ' \
-                'Your scheduler notifications was deleted if is existed',
-
+        'text': 'Not implemented.'
     }
 
-    try:
 
-        result = db.User.remove_user(user_id)
-
-    except SQLAlchemyError as exp:
-
-        msg = {
-
-            'type': 'error',
-            'text': f'Error removing integration with yandex calendar.',
-
-        }
-
-        logging.error(f'Error removing user in DB, {user_id=}. Traceback: {traceback.print_exc()}')
-
-    else:
-
-        delete_jobs_by_user_id(user_id)
-
-    return msg
-
-
-def create_account(request: Request):
+def update_account(request: Request, user: Row) -> dict:
     values = request.json['values']
 
-    user_id = request.json['context']['acting_user']['id']
+    mm_user_id = request.json['context']['acting_user']['id']
     login = values['login']
     token = values['token']
     timezone = values['timezone']['value']
 
-    principal = caldav_api.take_principal(db.User(user_id, login, token, timezone))
+    principal = caldav_api.take_principal(db.User(mm_user_id=mm_user_id, login=login, token=token, timezone=timezone))
 
     if type(principal) is dict:
         return principal
 
-    msg = {'type': 'ok', 'text': 'Successfully CREATE integration with yandex calendar'}
+    msg = {
+        'type': 'ok',
+        'text': ('Successfully UPDATE integration with yandex calendar. '
+                 'Your scheduler notifications was deleted if is existed'),
+    }
 
-    try:
+    updated_user_row = db.User.update_user(
+        mm_user_id=mm_user_id, login=login, token=token, timezone=timezone, e_c=False, ch_stat=False
+    )
 
-        result = db.User.add_user(user_id, login, token, timezone)
+    result = db.YandexCalendar.remove_cals(user_id=updated_user_row.id)
 
-    except SQLAlchemyError as exp:
+    sd.delete_jobs_by_mm_user_id(mm_user_id)
 
-        msg = {'type': 'error', 'text': f'Error creating integration with yandex calendar.'}
-        logging.error(f'Error adding user in DB, {user_id=}. Traceback: {traceback.print_exc()}')
+    return msg
+
+
+def delete_account(request: Request, user: Row) -> dict:
+    mm_user_id = request.json['context']['acting_user']['id']
+
+    msg = {
+        'type': 'ok',
+        'text': ('Successfully REMOVE integration with yandex calendar. '
+                 'Your scheduler notifications was deleted if is existed.'),
+    }
+
+    db.User.remove_user(mm_user_id=mm_user_id)
+
+    sd.delete_jobs_by_mm_user_id(mm_user_id)
+
+    return msg
+
+
+def create_account(request: Request) -> dict:
+    values = request.json['values']
+
+    mm_user_id = request.json['context']['acting_user']['id']
+    login = values['login']
+    token = values['token']
+    timezone = values['timezone']['value']
+
+    principal = caldav_api.take_principal(db.User(mm_user_id=mm_user_id, login=login, token=token, timezone=timezone, e_c=False, ch_stat=False))
+
+    if type(principal) is dict:
+        return principal
+
+    msg = {
+        'type': 'ok',
+        'text': 'Successfully CREATE integration with yandex calendar'
+    }
+
+    result = db.User.add_user(mm_user_id=mm_user_id, login=login, token=token, timezone=timezone, e_c=False, ch_stat=False)
 
     return msg

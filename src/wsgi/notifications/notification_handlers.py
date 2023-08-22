@@ -1,99 +1,98 @@
 from wsgi.converters import get_hours_minutes_with_UTC_from_form, get_dt_with_UTC_tz_from_iso
 from wsgi.app_handlers import static_file
-from wsgi.calendars import caldav_api
+from wsgi.calendars import caldav_api, conference, caldav_filters
 from wsgi.constants import EXPAND_DICT, TIMEs
 from wsgi.notifications import jobs
-from wsgi.schedulers.sd import scheduler, delete_jobs_by_user_id, check_exists_jobs_by_user_id
+from wsgi.schedulers import sd
+from wsgi.database import db
+from wsgi.settings import CHECK_EVENTS
 
 from datetime import timedelta
-
 from flask import Request, render_template, url_for
 from sqlalchemy.engine import Row
-import logging
+import caldav.lib.error as caldav_errs
+from apscheduler.triggers.cron import CronTrigger
 
 
-def delete_notifications(request: Request):
+def delete_notifications(user: Row, request: Request) -> dict:
     context = request.json['context']
     acting_user = context['acting_user']
-    user_id, mm_username = acting_user['id'], acting_user['username']
+    mm_user_id, mm_username = acting_user['id'], acting_user['username']
 
-    if not check_exists_jobs_by_user_id(user_id):
+    if not db.YandexCalendar.get_cals(user_id=user.id):
 
         return {
-
             'type': 'ok',
             'text': '# @{}, you don\'t have scheduler notifications'.format(mm_username),
-
         }
 
     else:
 
-        delete_jobs_by_user_id(user_id)
+        sd.delete_jobs_by_mm_user_id(mm_user_id)
+        db.YandexCalendar.remove_cals(user_id=user.id)
 
         return {
-
             'type': 'ok',
             'text': '# @{}, you successfully DELETE scheduler notifications'.format(mm_username),
-
         }
 
 
-def update_notifications(user: Row, request: Request):
-    delete_jobs_by_user_id(user.user_id)
+def update_notifications(user: Row, request: Request) -> dict:
+    context = request.json['context']
+    acting_user = context['acting_user']
+    mm_user_id = acting_user['id']
+
+    sd.delete_jobs_by_mm_user_id(mm_user_id)
+    db.YandexCalendar.remove_cals(user_id=user.id)
 
     return create_notifications(user, request)
 
 
-def create_notifications(user: Row, request: Request):
+def create_notifications(user: Row, request: Request) -> dict:
     context = request.json['context']
     acting_user = context['acting_user']
-    user_id, mm_username = acting_user['id'], acting_user['username']
+    mm_user_id, mm_username = acting_user['id'], acting_user['username']
 
-    if check_exists_jobs_by_user_id(user_id):
+    if db.YandexCalendar.get_cals(user_id=user.id):
         return {
             'type': 'error',
             'text': '# @{}, you already have notify scheduler\n'.format(mm_username),
         }
 
-    principal = caldav_api.take_principal(user)
+    cals_with_conferences = caldav_api.get_cals_with_confs(user)
 
-    if type(principal) is dict:
-        return principal
+    if type(cals_with_conferences) is dict:
+        return cals_with_conferences
 
-    cals = [{"label": c.name, "value": c.name} for c in principal.calendars() if caldav_api.exist_conferences_view(c)]
+    cals = [{"label": c.get_display_name(), "value": c.id} for c in cals_with_conferences]
 
     if not cals:
-        return {'type': 'error', 'text': 'You don\'t have a calendars with conferences'}
+        return {
+            'type': 'error',
+            'text': 'You don\'t have a calendars with conferences'
+        }
 
     return {
-
         "type": "form",
-
         "form": {
-
             "title": "Create notification",
-
             "icon": static_file("cal.png"),
-
             "submit": {
                 "path": url_for("notifications.continue_create_notification"),
                 'expand': EXPAND_DICT,
             },
-
             "fields": [
-
                 {
-                    "name": "Calendar",
+                    "name": "Calendars",
                     "type": "static_select",
+                    'multiselect': True,
                     "label": "cal",
-                    "modal_label": 'Calendar',
+                    "modal_label": 'Calendars',
                     "options": cals,
                     "is_required": True,
-                    "description": 'Select yandex calendar',
-                    "value": cals[0],
-                    "hint": '[Calendar display name]'
+                    "description": 'Select yandex calendar(s)',
+                    "hint": '[Calendars display name]'
                 },
-
                 {
                     "name": "Time",
                     "type": "static_select",
@@ -105,7 +104,6 @@ def create_notifications(user: Row, request: Request):
                     "value": {'label': '07:00', 'value': '07:00'},
                     "hint": '[00:00-23.45]'
                 },
-
                 {
                     "name": "Notification",
                     "type": "bool",
@@ -115,7 +113,6 @@ def create_notifications(user: Row, request: Request):
                     "value": True,
                     "hint": '[True|False]'
                 },
-
                 {
                     "name": "Status",
                     "type": "bool",
@@ -125,94 +122,98 @@ def create_notifications(user: Row, request: Request):
                     "value": True,
                     "hint": '[True|False]'
                 },
-
             ]
         }
     }
 
 
-def continue_create_notifications(user: Row, request: Request):
+def continue_create_notifications(user: Row, request: Request) -> dict:
     context = request.json['context']
     acting_user = context['acting_user']
-    user_id, mm_username = acting_user['id'], acting_user['username']
-
-    job_id_daily = f'{user_id}(daily)'
-    job_id_before_status = f'{user_id}(before-status)'
+    mm_user_id, mm_username = acting_user['id'], acting_user['username']
 
     values = request.json["values"]
 
-    calendar_name = values['Calendar']['value']
+    cals_form = values['Calendars']
+
     daily_clock = values['Time']['value']
-    notification_before_10_min = values['Notification']
-    status = values['Status']
+
+    e_c = values['Notification']
+    ch_stat = values['Status']
+
+    calendars_names = (v['label'] for v in cals_form)
 
     h, m = get_hours_minutes_with_UTC_from_form(daily_clock, user.timezone)
 
-    user_id = context['acting_user']['id']
+    principal = caldav_api.take_principal(user)
 
-    # required job1 daily notification at current clock
+    if type(principal) is dict:
+        return principal
 
-    job1 = scheduler.add_job(
+    sync_cals = []
 
-        func=jobs.daily_notification_job,
-        trigger='cron',
-        args=(user_id, calendar_name),
-        id=job_id_daily,
-        name=user.login,
-        replace_existing=True,
-        minute=m,
-        hour=h,
+    for d in cals_form:
+        cal_id = d['value']
 
-    )
+        cal = principal.calendar(cal_id=cal_id)
 
-    # job2 if notification_before_10_min or status (is optional)
-    if notification_before_10_min or status:
+        try:
 
-        representation = caldav_api.first_conference_notification(user, calendar_name)
+            sync_cal = cal.objects(load_objects=True)
 
-        if representation.get('type') != 'ok':
-            return representation
+        except caldav_errs.NotFoundError as exp:
 
-        first_conferences = representation.get('first_conferences')
-
-        if not first_conferences:
+            db.YandexCalendar.remove_cal(cal_id=cal_id)
 
             return {
-
-                'type': representation.get('type'),
-                'text': representation.get('text'),
-
+                'type': 'error',
+                'text': f'Calendar with {cal_id=} not found in yandex calendar server',
             }
 
         else:
 
-            first_conf = first_conferences[0]
+            db.YandexCalendar.add_one_cal(user_id=user.id, cal_id=cal_id, sync_token=sync_cal.sync_token)
+            sync_cals.append(sync_cal)
 
-            start_job = get_dt_with_UTC_tz_from_iso(first_conf.dtstart) - timedelta(minutes=10)
+    db.User.update_user(mm_user_id=user.mm_user_id, login=user.login, token=user.token, timezone=user.timezone,
+                        e_c=e_c, ch_stat=ch_stat)
 
-            job2 = scheduler.add_job(
+    # required job1 daily notification at current clock
+    job1 = sd.scheduler.add_job(
+        func=jobs.daily_notification_job,
+        trigger='cron',
+        args=(mm_user_id,),
+        id=f'{mm_user_id}(daily)',
+        name=user.login,
+        replace_existing=True,
+        minute=m,
+        hour=h,
+    )
 
-                func=jobs.notify_next_conference_job,
-                trigger='date',
-                args=(user_id, calendar_name, first_conf.uid, notification_before_10_min, status),
-                id=job_id_before_status,
-                name=user.login,
-                replace_existing=True,
-                run_date=start_job,
+    # job2 if e_c or ch_stat (is optional)
+    [jobs.load_updated_added_deleted_events(user, sync_cal, notify=False) for sync_cal in sync_cals]
 
-            )
+    # job3 if CHECK_EVENTS does exist in env
+    if CHECK_EVENTS:
 
-            return {
-                'type': 'ok',
-                'text': render_template(
+        job3 = sd.scheduler.add_job(
+            func=jobs.check_events_job,
+            trigger=CronTrigger.from_crontab(CHECK_EVENTS),
+            args=(mm_user_id,),
+            id=f'{mm_user_id}(check-events)',
+            name=user.login,
+            replace_existing=True,
+        )
 
-                    'created_jobs.md',
-                    mm_username=mm_username,
-                    calendar_name=calendar_name,
-                    timezone=user.timezone,
-                    daily_clock=daily_clock,
-                    notification_before_10_min=notification_before_10_min,
-                    status=status,
-
-                )
-            }
+    return {
+        'type': 'ok',
+        'text': render_template(
+            'created_jobs.md',
+            mm_username=mm_username,
+            calendars_names=calendars_names,
+            timezone=user.timezone,
+            daily_clock=daily_clock,
+            e_c=e_c,
+            ch_stat=ch_stat,
+        )
+    }

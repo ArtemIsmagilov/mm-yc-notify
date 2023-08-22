@@ -6,7 +6,7 @@ from flask import Request, g, url_for, render_template
 import os
 
 
-def static_file(filename):
+def static_file(filename) -> str:
     return os.path.join(STATIC_PATH, filename)
 
 
@@ -14,11 +14,11 @@ def get_user(request: Request):
     g.user = None
 
     if request.method == 'POST' and request.path not in {'/install', '/ping', '/bindings'}:
-        user_id = request.json['context']['acting_user']['id']
-        g.user = db.User.get_user(user_id)
+        mm_user_id = request.json['context']['acting_user']['id']
+        g.user = db.User.get_user(mm_user_id=mm_user_id)
 
 
-def help_info(request: Request):
+def help_info(request: Request) -> dict:
     mm_username = request.json['context']['acting_user']['username']
     text = render_template('info.md', mm_username=mm_username)
 
@@ -28,7 +28,7 @@ def help_info(request: Request):
     }
 
 
-def bindings():
+def bindings() -> dict:
     return {
         'type': 'ok',
         'data': [
@@ -72,7 +72,7 @@ def bindings():
                                                     "modal_label": 'Token',
                                                     "type": "text",
                                                     "subtype": "password",
-                                                    "description": "Enter created yandex calendar wsgi token",
+                                                    "description": "Enter created yandex calendar app token",
                                                     'hint': '[token]',
                                                     'is_required': True,
                                                 },
@@ -93,6 +93,21 @@ def bindings():
                                                 'expand': EXPAND_DICT,
                                             }
                                         }
+                                    },
+                                    {
+                                        "location": "profile",
+                                        "label": "profile",
+                                        "description": "Profile integration to yandex calendar(CalDAV)",
+                                        "form": {
+                                            "title": "Profile integrations with Yandex Calendar over CalDAV protocol",
+                                            "header": "Connect",
+                                            "icon": static_file("cal.png"),
+                                            "submit": {
+                                                "path": url_for("connections.profile"),
+                                                "expand": EXPAND_DICT,
+                                            },
+
+                                        },
                                     },
                                     {
                                         "location": "update",
@@ -119,8 +134,8 @@ def bindings():
                                                     "modal_label": 'Token',
                                                     "type": "text",
                                                     "subtype": "password",
-                                                    "description": "Enter  created wsgi token",
-                                                    'hint': '[created wsgi token]',
+                                                    "description": "Enter  created app token",
+                                                    'hint': '[created app token]',
                                                     'is_required': True,
                                                 },
                                                 {
@@ -264,7 +279,6 @@ def bindings():
                                             }
                                         }
                                     },
-
                                 ],
                             },
                             {
@@ -302,14 +316,12 @@ def bindings():
                                     },
                                 ],
                             },
-
                             {
                                 'description': 'checks',
                                 'hint': '[checking account and activation scheduler notifications]',
                                 'label': 'checks',
                                 'icon': static_file('cal.png'),
                                 'bindings': [
-
                                     {
                                         "location": "check_account",
                                         "label": "check_account",
@@ -319,7 +331,6 @@ def bindings():
                                             'expand': EXPAND_DICT,
                                         }
                                     },
-
                                     {
                                         "location": "check_scheduler",
                                         "label": "check_scheduler",
@@ -329,17 +340,14 @@ def bindings():
                                             'expand': EXPAND_DICT,
                                         }
                                     },
-
                                 ],
                             },
-
                             {
                                 'description': 'info about app',
                                 'hint': '[help information about all commands app]',
                                 'label': 'info',
                                 'icon': static_file('cal.png'),
                                 'bindings': [
-
                                     {
                                         "location": "help_info",
                                         "label": "help_info",
@@ -349,7 +357,6 @@ def bindings():
                                             'expand': EXPAND_DICT,
                                         }
                                     },
-
                                 ],
                             },
                         ],
@@ -360,11 +367,11 @@ def bindings():
     }
 
 
-def manifest():
+def manifest() -> dict:
     return {
         'app_id': 'yandex-calendar',
         'homepage_url': 'https://github.com/ArtemIsmagilov/mm-yc-notify',
-        'version': 'v1.0.0',
+        'version': 'v1.0.1',
         'display_name': 'Yandex Calendar',
         'description': 'Integration your yandex calendar with Mattermost server on protocol CalDAV',
         'icon': 'cal.png',
@@ -374,14 +381,11 @@ def manifest():
             'path': '/bindings',
         },
         'remote_webhook_auth_type': 'secret',
-
         'app_type': 'http',
-
         'on_install': {
             'path': '/install',
             'expand': EXPAND_DICT,
         },
-
         'http': {
             'root_url': APP_URL_EXTERNAL,
         },

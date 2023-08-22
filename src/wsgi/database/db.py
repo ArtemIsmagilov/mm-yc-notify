@@ -1,22 +1,19 @@
-from wsgi.database.models import User, metadata_obj, engine, SCHEDULER_CONF
-
+from wsgi.database import db_clis
+from wsgi.database.models import User, YandexCalendar, YandexConference
 import click
-
-
-def init_db():
-    metadata_obj.create_all(engine)
 
 
 @click.command('init-db')
 @click.option('--clear', '-c', is_flag=True)
-def init_db_command(clear: bool):
+def init_db_command(clear: bool) -> None:
     if clear:
-        metadata_obj.drop_all(engine)
+        db_clis.drop_db()
+        click.echo('dropped the database.')
 
-    init_db()
+    db_clis.init_db()
     click.echo('Initialized the database.')
 
 
-def init_app(app):
+def init_app(app) -> None:
     app.cli.add_command(init_db_command)
     # app.cli.add_command(add_some_commands)

@@ -4,63 +4,34 @@ from datetime import datetime
 from caldav import Calendar
 
 
-def find_conferences(calendars: list[Calendar], dates: list[datetime, datetime]) -> list[Conference]:
+def find_conferences_in_some_cals(calendars: list[Calendar], dates: tuple[datetime, datetime]) -> list[(str, list[Conference, ...]), ...]:
     result = []
 
     timezone = str(dates[0].tzinfo)
 
     for cal in calendars:
+        events = cal.search(start=dates[0], end=dates[1], event=True, sort_keys=["dtstart"])
 
-        events = cal.search(start=dates[0], end=dates[1], event=True, expand=True, sort_keys=['dtstart'])
 
-        if events:
+        conferences = [
+            Conference(e.icalendar_component, timezone) for e in events
+            if e.icalendar_component.get("X-TELEMOST-CONFERENCE")
+        ]
 
-            result.append((cal.name, []))
-
-            for e in events:
-
-                ievent = e.icalendar_component
-
-                if ievent.get('X-TELEMOST-CONFERENCE'):
-                    result[-1][-1].append(Conference(ievent, timezone))
-
-            if not result[-1][-1]:
-                result.pop(-1)
+        if conferences:
+            result.append((cal.get_display_name(), conferences))
 
     return result
 
 
-def find_conferences_today(cal: Calendar, dates: list[datetime, datetime]) -> list[Conference]:
-    conferences = []
-
-    events = cal.search(start=dates[0], end=dates[1], event=True, expand=True, sort_keys=['dtstart'])
+def find_conferences_in_one_cal(cal: Calendar, dates: tuple[datetime, datetime]) -> list[Conference, ...]:
+    events = cal.search(start=dates[0], end=dates[1], event=True, sort_keys=("dtstart",))
 
     timezone = str(dates[0].tzinfo)
 
-    for e in events:
-
-        ievent = e.icalendar_component
-
-        if ievent.get('X-TELEMOST-CONFERENCE'):
-            conferences.append(Conference(ievent, timezone))
-
-    return conferences
-
-
-def find_first_conferences(cal: Calendar, dates: list[datetime, datetime]) -> list[Conference, ...]:
-    conferences = []
-
-    events = cal.search(start=dates[0], end=dates[1], event=True, expand=True, sort_keys=['dtstart'])
-
-    timezone = str(dates[0].tzinfo)
-
-    for e in events:
-
-        ievent = e.icalendar_component
-
-        if ievent.get('X-TELEMOST-CONFERENCE'):
-            conference = Conference(ievent, timezone)
-
-            conferences.append(conference)
+    conferences = [
+        Conference(e.icalendar_component, timezone) for e in events
+        if e.icalendar_component.get("X-TELEMOST-CONFERENCE")
+    ]
 
     return conferences

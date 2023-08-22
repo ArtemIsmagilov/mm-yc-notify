@@ -1,17 +1,19 @@
 from wsgi.calendars import caldav_searchers
+from wsgi.calendars.conference import Conference
+from datetime import datetime
 
 from caldav import Calendar
-from jinja2 import FileSystemLoader, Environment
+from jinja2 import Environment, PackageLoader, select_autoescape
 
-env = Environment(loader=FileSystemLoader('wsgi/templates'))
+env = Environment(loader=PackageLoader("wsgi"), autoescape=select_autoescape())
 
 
-def daily_notify_view(calendar: Calendar, template: str, dates: list):
-    conferences = caldav_searchers.find_conferences_today(calendar, dates)
+def daily_notify_view(calendars: list[Calendar, ...], template: str, dates: tuple[datetime, datetime]) -> dict:
+    represents = caldav_searchers.find_conferences_in_some_cals(calendars, dates)
 
     tm = env.get_template(template)
 
-    if not conferences:
+    if not represents:
         return {
             'type': 'ok',
             'text': 'Today you don\'t have conferences',
@@ -19,29 +21,25 @@ def daily_notify_view(calendar: Calendar, template: str, dates: list):
 
     return {
         'type': 'ok',
-        'text': tm.render(calendar_name=calendar.name, conferences=conferences),
+        'text': tm.render(represents=represents),
     }
 
 
-def first_conference_view(calendar: Calendar, template: str, dates: list):
-    first_conferences = caldav_searchers.find_first_conferences(calendar, dates)
-
+def notify_next_conference_view(template: str, calendar_name: str, conf_obj: Conference):
     tm = env.get_template(template)
-
-    if not first_conferences:
-
-        text = 'You don\'t have conferences'
-
-    else:
-
-        text = tm.render(calendar_name=calendar.name, c=first_conferences[0])
+    text = tm.render(calendar_name=calendar_name, c=conf_obj)
 
     return {
         'type': 'ok',
         'text': text,
-        'first_conferences': first_conferences,
-        'cal': calendar,
     }
 
 
+def notify_loaded_conference_view(template: str, calendar_name: str, loaded: str, was_table: dict, now_table: dict):
+    tm = env.get_template(template)
+    text = tm.render(calendar_name=calendar_name, was_table=was_table, now_table=now_table, loaded=loaded)
 
+    return {
+        'type': 'ok',
+        'text': text,
+    }

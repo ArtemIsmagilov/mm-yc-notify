@@ -30,7 +30,7 @@ services:
       - "./mm-logs:/mm/logs:rw"
       
   db:
-    image: "postgres"
+    image: "postgres:alpine"
 
     environment:
       POSTGRES_PASSWORD: "mostest"

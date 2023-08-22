@@ -1,12 +1,12 @@
-from wsgi.schedulers.sd import get_jobs_by_user_id
+from wsgi.schedulers import sd
 
 from flask import Request
 
 
-def check_scheduler(request: Request):
-    user_id = request.json['context']['acting_user']['id']
+def check_scheduler(request: Request) -> dict:
+    mm_user_id = request.json['context']['acting_user']['id']
 
-    exists_jobs = get_jobs_by_user_id(user_id)
+    exists_jobs = sd.get_jobs_by_mm_user_id(mm_user_id)
 
     if exists_jobs:
 

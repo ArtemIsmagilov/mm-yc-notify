@@ -14,23 +14,23 @@ def get_a_week():
 
 @bp.route('get_a_month', methods=['POST'])
 @auth_required
-def get_a_month():
+def get_a_month() -> dict:
     return caldav_api.get_a_month(g.user)
 
 
 @bp.route('current', methods=['POST'])
 @auth_required
-def current():
+def current() -> dict:
     return caldav_api.current(g.user, request)
 
 
 @bp.route('today', methods=['POST'])
 @auth_required
-def today():
+def today() -> dict:
     return caldav_api.today(g.user)
 
 
 @bp.route('from_to', methods=['POST'])
 @auth_required
-def from_to():
+def from_to() -> dict:
     return caldav_api.from_to(g.user, request)

@@ -1,7 +1,7 @@
 from sqlalchemy.engine import Row
 
 
-def check_user(user: Row):
+def check_user(user: Row) -> dict:
     if user:
 
         return {

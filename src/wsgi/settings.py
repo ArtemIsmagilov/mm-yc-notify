@@ -14,9 +14,13 @@ APP_URL_EXTERNAL = os.environ['APP_URL_EXTERNAL']
 
 STATIC_PATH = os.environ['STATIC_PATH']
 
+CHECK_EVENTS = os.environ['CHECK_EVENTS']
+
+
 # flask config
 SECRET_KEY = os.environ['SECRET_KEY']
 DEBUG = True if os.environ['DEBUG'].lower() in ('true', 'y', 'yes',) else False
+TESTING = True if os.environ['TESTING'].lower() in ('true', 'y', 'yes',) else False
 
 # mm config
 MM_SCHEMA = os.environ['MM_SCHEMA']
@@ -32,10 +36,9 @@ MM_BOT_OPTIONS = {
     'url': MM_HOST_EXTERNAL,
     'port': int(MM_PORT_EXTERNAL),
     'token': MM_APP_TOKEN,
-    'debug': DEBUG,
+    #'debug': DEBUG,
 }
 
+DB_DSN = os.environ['DB_DSN']
 
 DB_URL = os.environ['DB_URL']
-
-

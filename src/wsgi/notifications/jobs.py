@@ -1,224 +1,413 @@
 from wsgi.app_handlers import static_file
-from wsgi.calendars import caldav_api
+from wsgi.calendars import caldav_api, caldav_filters
 from wsgi.calendars.conference import Conference
 from wsgi.database import db
-from wsgi.bots.mm_bot import MMBot
-from wsgi.schedulers.sd import scheduler, delete_jobs_by_user_id
-from wsgi.settings import MM_BOT_OPTIONS
-from wsgi.converters import get_dt_with_UTC_tz_from_iso
+from wsgi.notifications import notification_views
+from wsgi.schedulers import sd
+from wsgi.converters import get_dt_with_UTC_tz_from_iso, iso1_gt_iso2, dont_clear, create_conference_table, create_row_table
+from wsgi.bots.mm_bot import bot, send_msg_client
 
-import logging, caldav, traceback
-from caldav import Calendar
-from datetime import datetime, timedelta, UTC
+import logging, json, traceback
+from datetime import timedelta
+from sqlalchemy.engine import Row
+from caldav import SynchronizableCalendarObjectCollection as SyncCal
+import caldav.lib.error as caldav_errs
+from httpx import HTTPError
 
 
-def change_status_job(user_id: str, expires_at: str):
-    bot = MMBot(MM_BOT_OPTIONS)
-    bot.login()
+def check_events_job(mm_user_id):
+    user = db.User.get_user(mm_user_id=mm_user_id)
+
+    if not user:
+        sd.delete_jobs_by_mm_user_id(mm_user_id)
+
+        logging.info(f'Delete jobs with {mm_user_id=}. User doesn\'t exist')
+
+        return
+
+    principal = caldav_api.take_principal(user)
+
+    if type(principal) is dict:
+
+        sd.delete_jobs_by_mm_user_id(mm_user_id)
+        db.User.remove_user(mm_user_id=mm_user_id)
+
+        logging.info(f'Delete jobs with {mm_user_id=}. Incorrect username and token')
+
+        msg = ('Incorrect username and token. '
+               'Write in `connections` correct username and token. Your notifications was deleted. '
+               'Please, again create connections in command `connections create`.')
+
+        send_msg_client(mm_user_id, msg)
+
+        return
+
+    cal_ids = [c.cal_id for c in db.YandexCalendar.get_cals(user_id=user.id)]
+
+    for cal_id in cal_ids:
+
+        cal = principal.calendar(cal_id=cal_id)
+        # get sync_token from db
+        get_user_cal = db.YandexCalendar.get_cal(cal_id=cal_id)
+
+        try:
+
+            sync_cal = cal.objects_by_sync_token(sync_token=get_user_cal.sync_token, load_objects=True)
+
+        except caldav_errs.NotFoundError as exp:
+
+            sd.delete_jobs_by_cal_id(cal_id)
+            db.YandexCalendar.remove_cals(user_id=user.id)
+
+            send_msg_client(mm_user_id, f'Delete jobs with {cal_id=}. Calendar with {cal_id=} isn\'t exist.')
+
+            logging.info(f'Delete jobs with {cal_id=}. Calendar with {cal_id=} isn\'t exist.')
+
+        else:
+            load_updated_added_deleted_events(user, sync_cal)
+            # update sync_token in db
+            db.YandexCalendar.update_cal(user_id=user.id, cal_id=cal_id, sync_token=sync_cal.sync_token)
+
+
+def return_latest_custom_status_job(mm_user_id: str, latest_custom_status: str):
+    options = json.loads(latest_custom_status)
+    print('return options', options)
 
     try:
 
-        bot_update_user_status_custom = bot.update_user_status_custom(
-            user_id=user_id,
-            options={
-                'emoji': 'calendar',
-                'text': 'In a meeting',
-                'expires_at': expires_at,  # ISO 8601 format
-            })
+        bot_patch_user = bot.status.update_user_custom_status(mm_user_id, options)
 
-    except IOError as exp:
+    except HTTPError as exp:
+
         logging.error(
-            'Error bot_update_user_status_custom with user_id=%s. Traceback: ```%s```',
-            user_id, traceback.format_exc(),
+            'Error with mm_user_id=%s. <###traceback###\n%s\n###traceback###>\n\n',
+            mm_user_id,
+            traceback.format_exc(),
         )
 
-    else:
 
-        bot.logout()
+def change_status_job(mm_user_id: str, expires_at: str):
+    """{'props': {'customStatus': '{"emoji":"grinning","text":"","duration":"date_and_time","expires_at":"2023-08-16T10:30:00Z"}'}'"""
+    try:
 
+        bot_get_user = bot.users.get_user(mm_user_id)
 
-def notify_next_conference_job(user_id: str, calendar_name: str, uid: str, before_10_min: bool,
-                               change_status: bool) -> None:
-    user = db.User.get_user(user_id)
+    except HTTPError as exp:
 
-    if not user:
-        delete_jobs_by_user_id(user_id)
-        logging.info(f'Delete jobs with {user_id=}. User doesn\'t exist')
+        logging.error('Error with user_id=%s. <###traceback###\n%s###traceback###>',
+                      mm_user_id,
+                      traceback.format_exc())
+
         return
 
-    bot = MMBot(MM_BOT_OPTIONS)
-    bot_login = bot.login()
+    new_options = {"emoji": "calendar", 'text': 'In a meeting', 'expires_at': expires_at}
+    props = bot_get_user.get('props', {})
 
-    bot_channel = bot.channels.create_direct_message_channel([user_id, bot_login['id']])
+    if not props:
+        props['customStatus'] = ''
 
-    represents = caldav_api.first_conference_notification(user, calendar_name)
+    if not props.get('customStatus'):
 
-    if represents.get('type') != 'ok':
-
-        delete_jobs_by_user_id(user_id)
-        message = 'Your notify scheduler was deleted. Please, create notify again'
+        latest_options = {}
 
     else:
 
-        message = 'Hi, I remind you that you have a conference in 10 minutes!'
+        latest_options = json.loads(props.get('customStatus'))
 
-    first_conferences = represents.get('first_conferences')
-    cal = represents.get('cal')
+    if latest_options:
 
-    before_status_job_id = f'{user_id}(before-status)'
+        latest_options.setdefault('text', latest_options['emoji'])
 
-    if not first_conferences:
+        if dont_clear(latest_options['expires_at']):
 
-        delete_jobs_by_user_id(user_id)
+            latest_options = {'emoji': latest_options['emoji'], 'text':latest_options['text']}
 
-        pretext = 'Empty list upcoming conferences'
+            sd.delete_rt_stat_job(mm_user_id)
+
+            sd.scheduler.add_job(
+                func=return_latest_custom_status_job,
+                trigger='date',
+                args=(mm_user_id, json.dumps(latest_options)),
+                id=f'{mm_user_id}(rt_stat)',
+                replace_existing=True,
+                run_date=expires_at,
+            )
+
+        elif iso1_gt_iso2(latest_options['expires_at'], expires_at):
+
+            sd.delete_rt_stat_job(mm_user_id)
+
+            sd.scheduler.add_job(
+                func=return_latest_custom_status_job,
+                trigger='date',
+                args=(mm_user_id, json.dumps(latest_options)),
+                id=f'{mm_user_id}(rt_stat)',
+                replace_existing=True,
+                run_date=expires_at,
+            )
+
+    try:
+
+        bot_update_user_custom_status = bot.status.update_user_custom_status(mm_user_id, new_options)
+
+    except HTTPError as exp:
+
+        logging.error('Error with user_id=%s. <###traceback###\n%s###traceback###>',
+                      mm_user_id,
+                      traceback.format_exc())
+
+
+def notify_next_conference_job(mm_user_id: str, uid: str) -> None:
+    user = db.User.get_user(mm_user_id=mm_user_id)
+
+    if not user:
+
+        sd.delete_jobs_by_mm_user_id(mm_user_id)
+        logging.info(f'Delete jobs with {mm_user_id=}. User doesn\'t exist')
+
+        return
+
+    principal = caldav_api.take_principal(user)
+
+    if type(principal) is dict:
+
+        sd.delete_jobs_by_mm_user_id(mm_user_id)
+        db.User.remove_user(mm_user_id=mm_user_id)
+
+        logging.info(f'Delete jobs with {mm_user_id=}. Incorrect username and token')
+
+        msg = ('Incorrect username and token. '
+               'Write in `connections` correct username and token. Your notifications was deleted. '
+               'Please, again create notifications in command `notifications create`.')
+
+        send_msg_client(mm_user_id, msg)
+
+        return
+
+    user_conf = db.YandexConference.get_conference(uid=uid)
+    get_user_cal = db.YandexCalendar.get_cal(cal_id=user_conf.cal_id)
+
+    cal = principal.calendar(cal_id=get_user_cal.cal_id)
+
+    try:
+
+        event = cal.event_by_uid(uid=uid)
+
+    except caldav_errs.NotFoundError as exp:
+        logging.info(f'Calendar with {get_user_cal.cal_id=} not found event with {uid=}')
+        db.YandexConference.remove_conference(uid=uid)
+        sd.delete_job_by_uid(uid)
+
+        return
+
+    else:
+        i_event = event.icalendar_component
+
+        if i_event.get('X-TELEMOST-CONFERENCE'):
+
+            conf_obj = Conference(i_event, user.timezone)
+
+            if caldav_filters.is_exist_conf_at_time(conf_obj.dtstart):
+                if user.e_c:
+                    pretext = 'Upcoming conference!'
+                    msg = '### Bot send notification!'
+
+                    represents = notification_views.notify_next_conference_view(
+                        'first_conference.md', cal.get_display_name(), conf_obj
+                    )
+
+                    try:
+
+                        bot_create_direct_channel = bot.channels.create_direct_channel(
+                            [mm_user_id, bot.client.userid])
+
+                        bot_create_post = bot.posts.create_post({
+                            'channel_id': bot_create_direct_channel['id'],
+                            'message': msg,
+                            "props": {
+                                "attachments": [
+                                    {
+                                        "fallback": "test",
+                                        "title": "Yandex Calendar(upcoming conference)",
+                                        "pretext": pretext,
+                                        "text": represents.get('text'),
+                                        "thumb_url": static_file('ya.png'),
+                                    }
+                                ]},
+                        })
+
+                    except HTTPError as exp:
+
+                        logging.error(
+                            'Error with mm_user_id=%s. <###traceback###\n%s\n###traceback###>\n\n',
+                            mm_user_id,
+                            traceback.format_exc(),
+                        )
+
+                if user.ch_stat:
+                    job = sd.scheduler.add_job(
+                        func=change_status_job,
+                        trigger='date',
+                        args=(mm_user_id, conf_obj.dtend),
+                        id=f'{mm_user_id}-{get_user_cal.cal_id}-{uid}(ch_stat)',
+                        name=user.login,
+                        replace_existing=True,
+                        run_date=conf_obj.dtstart,
+                    )
+
+            else:
+                print(
+                    f'Conference with {uid=} is exist for user with {mm_user_id=}, but conference out of notice.')
+
+
+def daily_notification_job(mm_user_id: str):
+    user = db.User.get_user(mm_user_id=mm_user_id)
+
+    if not user:
+        sd.delete_jobs_by_mm_user_id(mm_user_id)
+        logging.info(f'Delete jobs with {mm_user_id=}.User doesn\'t exist')
+
+        return
+
+    cals_id = [row.cal_id for row in db.YandexCalendar.get_cals(user_id=user.id)]
+
+    exist_cals = caldav_api.check_exist_calendars_by_cal_id(user, cals_id)
+
+    if type(exist_cals) is dict:
+
+        body_conferences = exist_cals
+
+    else:
+
+        body_conferences = caldav_api.daily_notification(user, exist_cals)
+
+    if body_conferences.get('type') != 'ok':
+
+        sd.delete_jobs_by_cal_id(mm_user_id)
+        db.YandexCalendar.remove_cals(user_id=user.id)
+
+        msg = f'Delete jobs with {mm_user_id=}. Incorrect username and token'
+
+    else:
+
+        msg = '# Hi, I sent you a list of the conferences for today'
+
+    try:
+
+        bot_create_direct_channel = bot.channels.create_direct_channel([mm_user_id, bot.client.userid])
 
         bot_create_post = bot.posts.create_post({
-
-            'channel_id': bot_channel['id'],
-            'message': message,
+            'channel_id': bot_create_direct_channel['id'],
+            'message': msg,
             "props": {
                 "attachments": [
                     {
                         "fallback": "test",
-                        "title": "Yandex Calendar(upcoming conference)",
-                        "pretext": pretext,
-                        "text": represents.get('text'),
+                        "title": "Yandex Calendar(daily)",
+                        "pretext": "Daily notify!",
+                        "text": body_conferences.get('text'),
                         "thumb_url": static_file('ya.png')
                     }
                 ]},
-
         })
 
-        return
+    except HTTPError as exp:
 
-    elif is_exist_conference_at_time(cal, first_conferences, uid, user.timezone):
-
-        if before_10_min is True:
-            pretext = 'Upcoming conference!'
-
-            bot_create_post = bot.posts.create_post({
-
-                'channel_id': bot_channel['id'],
-                'message': message,
-                "props": {
-                    "attachments": [
-                        {
-                            "fallback": "test",
-                            "title": "Yandex Calendar(upcoming conference)",
-                            "pretext": pretext,
-                            "text": represents.get('text'),
-                            "thumb_url": static_file('ya.png')
-                        }
-                    ]},
-
-            })
-
-        if change_status is True:
-            next_conf = first_conferences[0]
-
-            job_change_status_id = f'{user_id}(change-status)'
-
-            scheduler.add_job(
-                func=change_status_job,
-                trigger='date',
-                args=(user_id, next_conf.dtend),
-                id=job_change_status_id,
-                name=user.login,
-                replace_existing=True,
-                run_date=next_conf.dtstart,
-
-            )
-
-    for next_conference in first_conferences[1:]:
-
-        if conference_start_gt_15_min(next_conference):
-            start_job = get_dt_with_UTC_tz_from_iso(next_conference.dtstart)
-
-            scheduler.add_job(
-
-                func=notify_next_conference_job,
-                trigger='date',
-                args=(user_id, calendar_name, next_conference.uid, before_10_min, change_status),
-                name=user.login,
-                id=before_status_job_id,
-                replace_existing=True,
-                run_date=start_job - timedelta(minutes=10),
-
-            )
-
-            break
-
-    bot.logout()
+        logging.error(
+            'Error with mm_user_id=%s. <###traceback###\n%s\n###traceback###>\n\n',
+            mm_user_id,
+            traceback.format_exc(),
+        )
 
 
-def daily_notification_job(user_id: str, calendar_name: str):
-    bot = MMBot(MM_BOT_OPTIONS)
-    bot_login = bot.login()
+def load_updated_added_deleted_events(user: Row, sync_cal: SyncCal, notify=True):
 
-    user = db.User.get_user(user_id)
+    mm_user_id = user.mm_user_id
+    cal_id = sync_cal.calendar.id
+    print(sync_cal.objects)
+    for sync_event in sync_cal:
+        # if deleted conference
+        if not sync_event.data:
 
-    if not user:
-        delete_jobs_by_user_id(user_id)
-        logging.info(f'Delete jobs with {user_id=}.User doesn\'t exist')
-        return
+            canonical_url = sync_event.canonical_url
 
-    body_conferences = caldav_api.daily_notification(user, calendar_name)
+            uid = canonical_url.split('/')[-1].removesuffix('.ics')
 
-    if body_conferences.get('type') != 'ok':
+            sd.delete_job_by_uid(uid)
+            deleted_conf = db.YandexConference.remove_conference(uid=uid)
 
-        delete_jobs_by_user_id(user_id)
-        message = 'Your jobs was deleted. Please, create notify again'
+            if deleted_conf:
 
-    else:
+                was_table = create_row_table(deleted_conf)
 
-        message = '# Hi, I sent you a list of the conferences for today'
+                represents = notification_views.notify_loaded_conference_view(
+                    'loaded_conference.md', sync_cal.calendar.get_display_name(), 'deleted', was_table, None
+                )
 
-    bot_channel = bot.channels.create_direct_message_channel([bot_login['id'], user_id])
+                if notify is True:
+                    send_msg_client(mm_user_id, represents.get('text'))
 
-    bot_create_post = bot.posts.create_post({
-        'channel_id': bot_channel['id'],
-        'message': message,
-        "props": {
-            "attachments": [
-                {
-                    "fallback": "test",
-                    "title": "Yandex Calendar(daily)",
-                    "pretext": "Daily notify!",
-                    "text": body_conferences.get('text'),
-                    "thumb_url": static_file('ya.png')
-                }
-            ]},
-    })
+            continue
 
-    bot.logout()
+        i_event = sync_event.icalendar_component
 
+        if i_event.get('X-TELEMOST-CONFERENCE'):
 
-def is_exist_conference_at_time(cal: Calendar, first_conferences: list[Conference, ...], uid: str,
-                                timezone: str) -> bool:
-    conf_obj = first_conferences[0]
+            conf = Conference(i_event, user.timezone)
 
-    try:
+            str_organizer = 'name - {}, email - {}'.format(conf.organizer.get('name'), conf.organizer.get('email')) if conf.organizer else None
+            str_attendee = "; ".join(", ".join(f"{attr} - {value}" for attr, value in a.items()) for a in conf.attendee) if conf.attendee else None
 
-        event = cal.event_by_uid(uid)
+            get_conf_user = db.YandexConference.get_conference(uid=conf.uid)
 
-    except caldav.lib.error.NotFoundError as exp:
+            # if changed conference
+            if get_conf_user:
 
-        return False
+                db.YandexConference.update_conference(
+                    cal_id=cal_id, uid=conf.uid, timezone=conf.timezone, dtstart=conf.dtstart, dtend=conf.dtend,
+                    summary=conf.summary, created=conf.created, last_modified=conf.last_modified,
+                    description=conf.description, url_event=conf.url_event, categories=conf.categories,
+                    x_telemost_conference=conf.x_telemost_conference, organizer=str_organizer, attendee=str_attendee
+                )
 
-    else:
+                was_table = create_row_table(get_conf_user)
+                new_table = create_conference_table(conf)
 
-        conference = Conference(event.icalendar_component, timezone)
+                represents = notification_views.notify_loaded_conference_view(
+                    "loaded_conference.md", sync_cal.calendar.get_display_name(), "updated", was_table, new_table
+                )
 
-        start_point = datetime.now(UTC)
-        middle_point = get_dt_with_UTC_tz_from_iso(conference.dtstart)
-        end_point = start_point + timedelta(minutes=15)
+                if notify is True:
+                    send_msg_client(mm_user_id, represents.get('text'))
 
-        return conference.uid == conf_obj.uid and start_point < middle_point < end_point
+            # else added conference
+            else:
 
+                db.YandexConference.add_conference(
+                    cal_id=cal_id, uid=conf.uid, timezone=conf.timezone, dtstart=conf.dtstart, dtend=conf.dtend,
+                    summary=conf.summary, created=conf.created, last_modified=conf.last_modified,
+                    description=conf.description, url_event=conf.url_event, categories=conf.categories,
+                    x_telemost_conference=conf.x_telemost_conference, organizer=str_organizer, attendee=str_attendee
+                )
 
-def conference_start_gt_15_min(conference: Conference):
-    start_point = get_dt_with_UTC_tz_from_iso(conference.dtstart)
-    end_point = datetime.now(UTC) + timedelta(minutes=15)
+                new_table = create_conference_table(conf)
 
-    return start_point > end_point
+                represents = notification_views.notify_loaded_conference_view(
+                    "loaded_conference.md", sync_cal.calendar.get_display_name(), "added", None, new_table
+                )
+
+                if notify is True:
+                    send_msg_client(mm_user_id, represents.get('text'))
+
+            if (user.e_c or user.ch_stat) and caldav_filters.start_gt_15_min(conf.dtstart):
+                start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(minutes=10)
+
+                job1 = sd.scheduler.add_job(
+                    func=notify_next_conference_job,
+                    trigger='date',
+                    args=(mm_user_id, conf.uid),
+                    id=f'{mm_user_id}-{cal_id}-{conf.uid}(next_conf)',
+                    name=user.login,
+                    replace_existing=True,
+                    run_date=start_job,
+                )
