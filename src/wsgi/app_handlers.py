@@ -112,46 +112,13 @@ def bindings() -> dict:
                                     {
                                         "location": "update",
                                         "label": "update",
-                                        "description": "Update login and token to yandex calendar(CalDAV)",
+                                        "description": "update to yandex calendar(CalDAV)",
                                         "form": {
-                                            "title": "Updating login and token for integrations with Yandex Calendar over CalDAV protocol",
+                                            "title": "Update to integrations with yandex calendar",
                                             "header": "Updating",
                                             "icon": static_file('cal.png'),
-                                            "fields": [
-                                                {
-                                                    "name": "login",
-                                                    "label": "login",
-                                                    "modal_label": 'Login ',
-                                                    "type": "text",
-                                                    "subtype": "input",
-                                                    "description": "Enter login",
-                                                    'is_required': True,
-                                                    'hint': '[login in yandex]'
-                                                },
-                                                {
-                                                    "name": "token",
-                                                    "label": "token",
-                                                    "modal_label": 'Token',
-                                                    "type": "text",
-                                                    "subtype": "password",
-                                                    "description": "Enter  created app token",
-                                                    'hint': '[created app token]',
-                                                    'is_required': True,
-                                                },
-                                                {
-                                                    "name": "timezone",
-                                                    "type": "static_select",
-                                                    "label": "utc",
-                                                    "modal_label": 'TimeZone',
-                                                    "options": UTCs,
-                                                    "is_required": True,
-                                                    "description": 'Select timezone',
-                                                    "value": {'label': '(UTC+00:00) UTC', 'value': 'UTC'},
-                                                    "hint": '[(UTC-12)|(UTC+12)]',
-                                                },
-                                            ],
                                             "submit": {
-                                                "path": url_for('connections.update'),
+                                                "path": url_for('connections.really_update'),
                                                 'expand': EXPAND_DICT,
                                             }
                                         }
@@ -165,7 +132,7 @@ def bindings() -> dict:
                                             "header": "Disconnecting",
                                             "icon": static_file('cal.png'),
                                             "submit": {
-                                                "path": url_for('connections.are_you_sure'),
+                                                "path": url_for('connections.really_delete'),
                                                 'expand': EXPAND_DICT,
                                             }
                                         }

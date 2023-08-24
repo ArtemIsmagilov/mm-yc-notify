@@ -1,6 +1,6 @@
 # All conferences
 
-{% for calendar_name, conferences  in represents %}
+{% for calendar_name, conferences in represents %}
 
 {% for c in conferences %}
 ## calendar name: {{ calendar_name }}

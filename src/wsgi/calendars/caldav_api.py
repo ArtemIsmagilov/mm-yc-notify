@@ -148,7 +148,7 @@ def daily_notification(user: Row, exist_calendars: list[Calendar, ...]) -> dict:
     return notification_views.daily_notify_view(exist_calendars, 'get_daily.md', (start, end))
 
 
-def get_cals_with_confs(user: Row):
+def get_cals_with_confs(user: Row) -> dict | list[Calendar, ...]:
     principal = take_principal(user)
 
     if type(principal) is dict:
@@ -159,6 +159,14 @@ def get_cals_with_confs(user: Row):
 
     return [c for c in principal.calendars() if caldav_searchers.find_conferences_in_one_cal(c, (start, end))]
 
+
+def get_all_cals(user: Row):
+    principal = take_principal(user)
+
+    if type(principal) is dict:
+        return principal
+
+    return [c for c in principal.calendars()]
 
 def check_exist_calendars_by_cal_id(user: Row, cals_id: list[str, ...]) -> list[Calendar, ...] | dict:
     principal = take_principal(user)

@@ -57,7 +57,7 @@ def check_events_job(mm_user_id):
         except caldav_errs.NotFoundError as exp:
 
             sd.delete_jobs_by_cal_id(cal_id)
-            db.YandexCalendar.remove_cals(user_id=user.id)
+            removed_cal = db.YandexCalendar.remove_cals(user_id=user.id)
 
             send_msg_client(mm_user_id, f'Delete jobs with {cal_id=}. Calendar with {cal_id=} isn\'t exist.')
 
@@ -66,12 +66,11 @@ def check_events_job(mm_user_id):
         else:
             load_updated_added_deleted_events(user, sync_cal)
             # update sync_token in db
-            db.YandexCalendar.update_cal(user_id=user.id, cal_id=cal_id, sync_token=sync_cal.sync_token)
+            db.YandexCalendar.update_cal(cal_id, sync_token=sync_cal.sync_token)
 
 
 def return_latest_custom_status_job(mm_user_id: str, latest_custom_status: str):
     options = json.loads(latest_custom_status)
-    print('return options', options)
 
     try:
 
@@ -185,8 +184,11 @@ def notify_next_conference_job(mm_user_id: str, uid: str) -> None:
         return
 
     user_conf = db.YandexConference.get_conference(uid=uid)
-    get_user_cal = db.YandexCalendar.get_cal(cal_id=user_conf.cal_id)
 
+    if not user_conf:
+        return
+
+    get_user_cal = db.YandexCalendar.get_cal(cal_id=user_conf.cal_id)
     cal = principal.calendar(cal_id=get_user_cal.cal_id)
 
     try:
@@ -256,7 +258,7 @@ def notify_next_conference_job(mm_user_id: str, uid: str) -> None:
                     )
 
             else:
-                print(
+                logging.info(
                     f'Conference with {uid=} is exist for user with {mm_user_id=}, but conference out of notice.')
 
 
@@ -271,22 +273,22 @@ def daily_notification_job(mm_user_id: str):
 
     cals_id = [row.cal_id for row in db.YandexCalendar.get_cals(user_id=user.id)]
 
-    exist_cals = caldav_api.check_exist_calendars_by_cal_id(user, cals_id)
+    exists_cals = caldav_api.check_exist_calendars_by_cal_id(user, cals_id)
 
-    if type(exist_cals) is dict:
+    if type(exists_cals) is dict:
 
-        body_conferences = exist_cals
+        body_conferences = exists_cals
 
     else:
 
-        body_conferences = caldav_api.daily_notification(user, exist_cals)
+        body_conferences = caldav_api.daily_notification(user, exists_cals)
 
     if body_conferences.get('type') != 'ok':
 
         sd.delete_jobs_by_cal_id(mm_user_id)
         db.YandexCalendar.remove_cals(user_id=user.id)
 
-        msg = f'Delete jobs with {mm_user_id=}. Incorrect username and token'
+        msg = f'Delete jobs with {mm_user_id=}. Your server does not have the before selected calendars. Need again create notifications'
 
     else:
 
@@ -363,11 +365,20 @@ def load_updated_added_deleted_events(user: Row, sync_cal: SyncCal, notify=True)
             # if changed conference
             if get_conf_user:
 
-                db.YandexConference.update_conference(
-                    cal_id=cal_id, uid=conf.uid, timezone=conf.timezone, dtstart=conf.dtstart, dtend=conf.dtend,
-                    summary=conf.summary, created=conf.created, last_modified=conf.last_modified,
-                    description=conf.description, url_event=conf.url_event, categories=conf.categories,
-                    x_telemost_conference=conf.x_telemost_conference, organizer=str_organizer, attendee=str_attendee
+                db.YandexConference.update_conference(conf.uid,
+                    cal_id=cal_id,
+                    timezone=conf.timezone,
+                    dtstart=conf.dtstart,
+                    dtend=conf.dtend,
+                    summary=conf.summary,
+                    created=conf.created,
+                    last_modified=conf.last_modified,
+                    description=conf.description,
+                    url_event=conf.url_event,
+                    categories=conf.categories,
+                    x_telemost_conference=conf.x_telemost_conference,
+                    organizer=str_organizer,
+                    attendee=str_attendee
                 )
 
                 was_table = create_row_table(get_conf_user)
@@ -384,10 +395,20 @@ def load_updated_added_deleted_events(user: Row, sync_cal: SyncCal, notify=True)
             else:
 
                 db.YandexConference.add_conference(
-                    cal_id=cal_id, uid=conf.uid, timezone=conf.timezone, dtstart=conf.dtstart, dtend=conf.dtend,
-                    summary=conf.summary, created=conf.created, last_modified=conf.last_modified,
-                    description=conf.description, url_event=conf.url_event, categories=conf.categories,
-                    x_telemost_conference=conf.x_telemost_conference, organizer=str_organizer, attendee=str_attendee
+                    cal_id=cal_id,
+                    uid=conf.uid,
+                    timezone=conf.timezone,
+                    dtstart=conf.dtstart,
+                    dtend=conf.dtend,
+                    summary=conf.summary,
+                    created=conf.created,
+                    last_modified=conf.last_modified,
+                    description=conf.description,
+                    url_event=conf.url_event,
+                    categories=conf.categories,
+                    x_telemost_conference=conf.x_telemost_conference,
+                    organizer=str_organizer,
+                    attendee=str_attendee
                 )
 
                 new_table = create_conference_table(conf)

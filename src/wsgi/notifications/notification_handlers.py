@@ -38,32 +38,31 @@ def delete_notifications(user: Row, request: Request) -> dict:
 
 
 def update_notifications(user: Row, request: Request) -> dict:
-    context = request.json['context']
-    acting_user = context['acting_user']
-    mm_user_id = acting_user['id']
-
-    return create_notifications(user, request)
 
 
-def create_notifications(user: Row, request: Request) -> dict:
+    return create_notifications(user, request, True)
+
+
+def create_notifications(user: Row, request: Request, updating=False) -> dict:
     context = request.json['context']
     acting_user = context['acting_user']
     mm_user_id, mm_username = acting_user['id'], acting_user['username']
 
-    if db.YandexCalendar.get_cals(user_id=user.id):
+    if db.YandexCalendar.get_cals(user_id=user.id) and not updating:
         return {
             'type': 'error',
             'text': '# @{}, you already have notify scheduler\n'.format(mm_username),
         }
 
-    cals_with_conferences = caldav_api.get_cals_with_confs(user)
+    exists_cals = caldav_api.get_cals_with_confs(user)
 
-    if type(cals_with_conferences) is dict:
-        return cals_with_conferences
+    if type(exists_cals) is dict:
+        return exists_cals
 
-    cals = [{"label": c.get_display_name(), "value": c.id} for c in cals_with_conferences]
+    cals = [{"label": c.get_display_name(), "value": c.id} for c in exists_cals]
 
     if not cals:
+
         return {
             'type': 'error',
             'text': 'You don\'t have a calendars with conferences'
@@ -129,9 +128,6 @@ def continue_create_notifications(user: Row, request: Request) -> dict:
     acting_user = context['acting_user']
     mm_user_id, mm_username = acting_user['id'], acting_user['username']
 
-    sd.delete_jobs_by_mm_user_id(mm_user_id)
-    db.YandexCalendar.remove_cals(user_id=user.id)
-
     values = request.json["values"]
 
     cals_form = values['Calendars']
@@ -149,6 +145,9 @@ def continue_create_notifications(user: Row, request: Request) -> dict:
 
     if type(principal) is dict:
         return principal
+
+    sd.delete_jobs_by_mm_user_id(mm_user_id)
+    db.YandexCalendar.remove_cals(user_id=user.id)
 
     sync_cals = []
 
@@ -175,7 +174,7 @@ def continue_create_notifications(user: Row, request: Request) -> dict:
             db.YandexCalendar.add_one_cal(user_id=user.id, cal_id=cal_id, sync_token=sync_cal.sync_token)
             sync_cals.append(sync_cal)
 
-    db.User.update_user(mm_user_id=user.mm_user_id, login=user.login, token=user.token, timezone=user.timezone,
+    db.User.update_user(user.mm_user_id, login=user.login, token=user.token, timezone=user.timezone,
                         e_c=e_c, ch_stat=ch_stat)
 
     # required job1 daily notification at current clock

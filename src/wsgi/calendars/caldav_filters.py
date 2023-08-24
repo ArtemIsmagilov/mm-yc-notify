@@ -2,10 +2,10 @@ from datetime import datetime, UTC, timedelta
 
 
 def is_exist_conf_at_time(dt_iso: str) -> bool:
-    start_point = datetime.now(UTC)
-    middle_point = datetime.fromisoformat(dt_iso).astimezone(UTC)
-    end_point = start_point + timedelta(minutes=15)
-    print(start_point, middle_point, end_point)
+    start_point = datetime.now(UTC)  # before 10 min(dtstart - 10 min)
+    middle_point = datetime.fromisoformat(dt_iso).astimezone(UTC)  # dtstart
+    end_point = start_point + timedelta(minutes=15)  # before 10 min + 15 min(dtstart - 10 min + 15 min)
+
     return start_point < middle_point < end_point
 
 

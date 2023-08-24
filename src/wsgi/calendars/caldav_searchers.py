@@ -10,7 +10,7 @@ def find_conferences_in_some_cals(calendars: list[Calendar], dates: tuple[dateti
     timezone = str(dates[0].tzinfo)
 
     for cal in calendars:
-        events = cal.search(start=dates[0], end=dates[1], event=True, sort_keys=["dtstart"])
+        events = cal.search(start=dates[0], end=dates[1], event=True, sort_keys=("dtstart",))
 
 
         conferences = [

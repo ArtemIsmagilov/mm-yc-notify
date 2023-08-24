@@ -162,9 +162,7 @@ location:{self.location!r}\
                     at_name = at.params.get("CN")
                     at_role = at.params.get("ROLE")
 
-                    at_dict.update(
-                        {"partstat": at_partstat, "name": at_name, "role": at_role}
-                    )
+                    at_dict.update({"partstat": at_partstat, "name": at_name, "role": at_role})
 
                 result.append(at_dict)
 

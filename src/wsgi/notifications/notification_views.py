@@ -14,6 +14,7 @@ def daily_notify_view(calendars: list[Calendar, ...], template: str, dates: tupl
     tm = env.get_template(template)
 
     if not represents:
+
         return {
             'type': 'ok',
             'text': 'Today you don\'t have conferences',
