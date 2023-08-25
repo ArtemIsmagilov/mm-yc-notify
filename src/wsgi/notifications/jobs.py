@@ -183,12 +183,10 @@ def notify_next_conference_job(mm_user_id: str, uid: str) -> None:
 
         return
 
+    # TODO create custom sql query
     user_conf = db.YandexConference.get_conference(uid=uid)
-
-    if not user_conf:
-        return
-
     get_user_cal = db.YandexCalendar.get_cal(cal_id=user_conf.cal_id)
+    
     cal = principal.calendar(cal_id=get_user_cal.cal_id)
 
     try:
@@ -378,7 +376,8 @@ def load_updated_added_deleted_events(user: Row, sync_cal: SyncCal, notify=True)
                     categories=conf.categories,
                     x_telemost_conference=conf.x_telemost_conference,
                     organizer=str_organizer,
-                    attendee=str_attendee
+                    attendee=str_attendee,
+                    location=conf.location,
                 )
 
                 was_table = create_row_table(get_conf_user)
@@ -408,7 +407,8 @@ def load_updated_added_deleted_events(user: Row, sync_cal: SyncCal, notify=True)
                     categories=conf.categories,
                     x_telemost_conference=conf.x_telemost_conference,
                     organizer=str_organizer,
-                    attendee=str_attendee
+                    attendee=str_attendee,
+                    location=conf.location,
                 )
 
                 new_table = create_conference_table(conf)
