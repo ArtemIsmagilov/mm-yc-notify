@@ -431,9 +431,8 @@ def load_updated_added_deleted_events(user: Row, sync_cal: SyncCal, notify=True)
             if notify is True:
                 send_msg_client(mm_user_id, represents.get('text'))
 
-            if (user.e_c or user.ch_stat) and caldav_filters.start_gt_now(
-                    conf.dtstart):  # .start_gt_15_min(conf.dtstart):
-                start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(minutes=2)
+            if (user.e_c or user.ch_stat) and caldav_filters.start_gt_15_min(conf.dtstart):
+                start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(minutes=10)
 
                 exist_job = sd.scheduler.get_job(job_id)
                 if exist_job:
