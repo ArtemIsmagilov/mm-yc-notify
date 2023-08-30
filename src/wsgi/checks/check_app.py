@@ -1,7 +1,6 @@
 from wsgi.checks import check_my_account, check_my_scheduler
 from wsgi.decorators.account_decorators import auth_required
 
-
 from flask import Blueprint, g, request
 
 bp = Blueprint('checks', __name__, url_prefix='/checks')

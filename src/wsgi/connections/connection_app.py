@@ -6,43 +6,42 @@ from flask import Blueprint, request, g
 bp = Blueprint('connections', __name__, url_prefix='/connections')
 
 
-@bp.route('really_delete', methods=['POST'])
-@auth_required
-def really_delete() -> dict:
-    return connection_handlers.really_delete(request)
+@bp.route('profile_account', methods=['POST'])
+def profile_account() -> dict:
+    return connection_handlers.profile(g.user, request)
 
 
-@bp.route('disconnect', methods=['POST'])
-@auth_required
-def disconnect() -> dict:
-    return connection_handlers.delete_account(request, g.user)
-
-
-@bp.route('really_update', methods=['POST'])
-@auth_required
-def really_update() -> dict:
-    return connection_handlers.really_update(request)
-
-
-@bp.route('update_form', methods=['POST'])
-@auth_required
-def update_form() -> dict:
-    return connection_handlers.update_form()
-
-
-@bp.route('update', methods=['POST'])
-@auth_required
-def update() -> dict:
-    return connection_handlers.update_account(request, g.user)
-
-
-@bp.route('connect', methods=['POST'])
+@bp.route('connect_account', methods=['POST'])
 @required_account_does_not_exist
-def connect() -> dict:
+def connect_account() -> dict:
     return connection_handlers.create_account(request)
 
 
-@bp.route('profile', methods=['POST'])
+@bp.route('really_update_account', methods=['POST'])
 @auth_required
-def profile() -> dict:
-    return connection_handlers.profile(g.user, request)
+def really_update_account() -> dict:
+    return connection_handlers.really_update_account(request)
+
+
+@bp.route('update_account_form', methods=['POST'])
+@auth_required
+def update_account_form() -> dict:
+    return connection_handlers.update_account_form()
+
+
+@bp.route('update_account', methods=['POST'])
+@auth_required
+def update_account() -> dict:
+    return connection_handlers.update_account(request, g.user)
+
+
+@bp.route('really_delete_account', methods=['POST'])
+@auth_required
+def really_delete_account() -> dict:
+    return connection_handlers.really_delete_account(request)
+
+
+@bp.route('disconnect_account', methods=['POST'])
+@auth_required
+def disconnect_account() -> dict:
+    return connection_handlers.delete_account(request)

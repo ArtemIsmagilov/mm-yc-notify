@@ -2,8 +2,13 @@
 
 {% for calendar_name, conferences in represents %}
 
-{% for c in conferences %}
 ## calendar name: {{ calendar_name }}
+
+Count conferences: `{{ conferences | length }}`
+
+{% for c in conferences %}
+__№{{ loop.index }}__
+
 {% if c.timezone %}* Timezone: {{ c.timezone }}{% endif %}
 {% if c.dtstart %}*  Start: {{ c.dtstart }}{% endif %}  
 {% if c.dtend %}* End: {{ c.dtend }}{% endif %}

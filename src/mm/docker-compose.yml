@@ -3,7 +3,7 @@ version: "3.9"
 services:
   mattermost:
     image: "mattermost/mattermost-enterprise-edition:7.9.0" # https://hub.docker.com/r/mattermost/mattermost-enterprise-edition/tags
-#    restart: "unless-stopped"
+    restart: "unless-stopped"
     depends_on:
       - "db"
     ports:
@@ -31,6 +31,7 @@ services:
       
   db:
     image: "postgres:alpine"
+    restart: "unless-stopped"
 
     environment:
       POSTGRES_PASSWORD: "mostest"

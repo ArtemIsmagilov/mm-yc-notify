@@ -7,9 +7,11 @@ import logging, traceback, caldav
 from flask import Request
 from caldav import Principal, Calendar
 import caldav.lib.error as caldav_errs
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from sqlalchemy.engine import Row
+
+from typing import Iterator
 
 
 def take_principal(user: Row) -> Principal | dict:
@@ -51,7 +53,7 @@ def get_a_week(user: Row) -> dict:
     if type(principal) is dict:
         return principal
 
-    start = datetime.now(UTC).astimezone(tz=ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
+    start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
     end = start + timedelta(days=7)
 
     return calendar_views.base_view(principal.calendars(), 'get_all.md', (start, end))
@@ -63,7 +65,7 @@ def get_a_month(user: Row) -> dict:
     if type(principal) is dict:
         return principal
 
-    start = datetime.now(UTC).astimezone(tz=ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
+    start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
     end = start + timedelta(days=30)
 
     return calendar_views.base_view(principal.calendars(), 'get_all.md', (start, end))
@@ -79,10 +81,9 @@ def from_to(user: Row, request: Request) -> dict:
 
     try:
 
-        start = (datetime.strptime(dtstart, '%d.%m.%Y')
-                 .replace(tzinfo=ZoneInfo(user.timezone)))
-        end = (datetime.strptime(dtend, '%d.%m.%Y')
-               .replace(tzinfo=ZoneInfo(user.timezone), hour=23, minute=59, second=59))
+        start = datetime.strptime(dtstart, '%d.%m.%Y').replace(tzinfo=ZoneInfo(user.timezone))
+        end = datetime.strptime(dtend, '%d.%m.%Y').replace(tzinfo=ZoneInfo(user.timezone), hour=23, minute=59,
+                                                           second=59)
 
     except ClientError as exp:
 
@@ -130,7 +131,7 @@ def today(user: Row) -> dict:
     if type(principal) is dict:
         return principal
 
-    start = datetime.now(UTC).astimezone(tz=ZoneInfo(user.timezone))
+    start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
     end = start.replace(hour=23, minute=59, second=59)
 
     return calendar_views.base_view(principal.calendars(), 'get_all.md', (start, end))
@@ -142,33 +143,34 @@ def daily_notification(user: Row, exist_calendars: list[Calendar, ...]) -> dict:
     if type(principal) is dict:
         return principal
 
-    start = datetime.now(UTC).astimezone(tz=ZoneInfo(user.timezone))
+    start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
     end = start.replace(hour=23, minute=59, second=59)
 
     return notification_views.daily_notify_view(exist_calendars, 'get_daily.md', (start, end))
 
 
-def get_cals_with_confs(user: Row) -> dict | list[Calendar, ...]:
+def get_cals_with_confs(user: Row) -> dict | list[Calendar, ...] | None:
     principal = take_principal(user)
 
     if type(principal) is dict:
         return principal
 
-    start = datetime.now(UTC).astimezone(ZoneInfo(user.timezone))
+    start = datetime.now(ZoneInfo(user.timezone))
     end = start + timedelta(days=365)
 
     return [c for c in principal.calendars() if caldav_searchers.find_conferences_in_one_cal(c, (start, end))]
 
 
-def get_all_cals(user: Row):
+def get_all_calendars(user: Row) -> list[Calendar, ...] | dict | None:
     principal = take_principal(user)
 
     if type(principal) is dict:
         return principal
 
-    return [c for c in principal.calendars()]
+    return principal.calendars()
 
-def check_exist_calendars_by_cal_id(user: Row, cals_id: list[str, ...]) -> list[Calendar, ...] | dict:
+
+def check_exist_calendars_by_cal_id(user: Row, cals_id: Iterator[str]) -> list[Calendar, ...] | dict:
     principal = take_principal(user)
 
     if type(principal) is dict:
@@ -194,18 +196,24 @@ def check_exist_calendars_by_cal_id(user: Row, cals_id: list[str, ...]) -> list[
         else:
             cals.append(cal)
 
+    if not cals:
+        return {
+            'type': 'error',
+            'text': f'You haven\'t calendars. Notification scheduler was deleted.',
+        }
+
     return cals
 
 
 def get_conferences_with_some_cals(cals: list[Calendar, ...], timezone) -> list[Conference, ...]:
-    start = datetime.now(UTC).astimezone(ZoneInfo(timezone))
+    start = datetime.now(ZoneInfo(timezone)).replace(hour=0, minute=0, second=0)
     end = start + timedelta(days=365 * 4)
 
     return caldav_searchers.find_conferences_in_some_cals(cals, (start, end))
 
 
 def get_conferences_with_one_cal(cal: Calendar, timezone) -> list[Conference, ...]:
-    start = datetime.now(UTC).astimezone(ZoneInfo(timezone))
+    start = datetime.now(ZoneInfo(timezone)).replace(hour=0, minute=0, second=0)
     end = start + timedelta(days=365 * 4)
 
     return caldav_searchers.find_conferences_in_one_cal(cal, (start, end))

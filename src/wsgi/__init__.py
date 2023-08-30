@@ -3,7 +3,7 @@ def create_app(test_config=None):
     import logging, os
 
     from wsgi.constants import UTCs
-    from wsgi.settings import MM_BOT_OPTIONS, MM_APP_TOKEN, DEBUG
+    from wsgi.settings import MM_BOT_OPTIONS, MM_APP_TOKEN
 
     app = Flask(__name__, instance_relative_config=True, static_url_path='/static', static_folder='./static')
     os.makedirs(app.instance_path, exist_ok=True)

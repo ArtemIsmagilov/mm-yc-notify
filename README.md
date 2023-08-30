@@ -83,7 +83,8 @@
     ├── connections
     │         ├── connect
     │         ├── disconnect
-    │         └── update
+    │         ├── update
+    │         └── profile
     ├── info
     └── notifications
         ├── create
@@ -98,6 +99,7 @@
           ***timezone*** - form command]
         + disconnect [*disconnection* account from integration - execute command]
         + update [*update* ***login***, ***token***, ***timezone*** - form command ]
+        + profile [*show* info about me(user  attributes) - execute command]
 
     - calendars [module Yandex Calendar API for client]
         + get_a_week [get conferences *for the week* by user timezone, execute command]
@@ -250,6 +252,9 @@
 - /yandex-calendar connections connect
   ![connect](imgs/connect.PNG)
 
+- /yandex-calendar connections profile
+  ![profile](imgs/profile.PNG)
+
 - /yandex-calendar calendars current [--date]
   ![current](imgs/current.PNG)
 
@@ -401,12 +406,12 @@
           (4 rows)
 
         ```bash
-        SELECT * FROM user_account;
+        SELECT id, token FROM user_account;
         ```
 
-           id |          user_id           |      login       |      token       |   timezone    
-          ----+----------------------------+------------------+------------------+---------------
-            1 | hak3jkeh67y4dd1h6q8r16gqrr | artemismagilov03 | bcxekezavhqfxaqy | Europe/Samara
+           id |      token         
+          ----+----------------------------
+            1 | hak3jkeh67y4dd1h6q8r16gqrr 
           (1 row)
 
     + Токен у нас не зашифрован(мы ничего и не делали для этого), предыдущий метод долгий, лучше просто добавить в
@@ -432,12 +437,19 @@
 - Если в яндекс-календаре создаю календари с одинаковым именем, то при добавлении в форму, маттермост удаляет эти дубликаты.
   Это и логично, как нам их отличить, если одинаковые имена. Можно сделать выбор по id, но это не самые комфортный 
   интерфейс для пользователя.
+- Произвольные обновления событий без участия клиента, что требует дополнительной корректировки синхронизации событий.
+  Скорее всего, сервер обновляет свойства событий не относящиеся к атрибутам вытягиваемой конференции. Для правильной
+  синхронизации потребовалась перепроверка на идентичность новых событий-конференций по sync_token с событиями-конфренециями
+  в БД.
 
 
 ## Будущие доработки
 
 - добавить русский язык
 - оптимизировать алгоритм обновлений конференций через CalDAV сервер
+- покрыть код тестами
+- выявить уязвимости
+- желательна переработка кода
 
 ## Благодарности
 

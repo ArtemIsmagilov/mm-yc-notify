@@ -1,8 +1,7 @@
 from icalendar.prop import vCategory, vText, vDDDTypes, vCalAddress, vUri
 from icalendar import Event
 from zoneinfo import ZoneInfo
-from datetime import datetime, date, UTC
-
+from datetime import datetime, date
 
 class Conference:
     __slots__ = (
@@ -78,7 +77,7 @@ location:{self.location!r}\
             dt = self._dtstart.dt
 
             if type(dt) is date:
-                dt = datetime(year=dt.year, month=dt.month, day=dt.day, tzinfo=UTC)
+                dt = datetime(year=dt.year, month=dt.month, day=dt.day, tzinfo=ZoneInfo(self.timezone))
 
             return dt.astimezone(ZoneInfo(self.timezone)).isoformat()
 
@@ -88,7 +87,7 @@ location:{self.location!r}\
             dt = self._dtend.dt
 
             if type(dt) is date:
-                dt = datetime(year=dt.year, month=dt.month, day=dt.day, tzinfo=UTC)
+                dt = datetime(year=dt.year, month=dt.month, day=dt.day, tzinfo=ZoneInfo(self.timezone))
 
             return dt.astimezone(ZoneInfo(self.timezone)).isoformat()
 
@@ -103,7 +102,7 @@ location:{self.location!r}\
             dt = self._created.dt
 
             if type(dt) is date:
-                dt = datetime(year=dt.year, month=dt.month, day=dt.day, tzinfo=UTC)
+                dt = datetime(year=dt.year, month=dt.month, day=dt.day, tzinfo=ZoneInfo(self.timezone))
 
             return dt.astimezone(ZoneInfo(self.timezone)).isoformat()
 
@@ -113,7 +112,7 @@ location:{self.location!r}\
             dt = self._last_modified.dt
 
             if type(dt) is date:
-                dt = datetime(year=dt.year, month=dt.month, day=dt.day, tzinfo=UTC)
+                dt = datetime(year=dt.year, month=dt.month, day=dt.day, tzinfo=ZoneInfo(self.timezone))
 
             return dt.astimezone(ZoneInfo(self.timezone)).isoformat()
 
@@ -142,10 +141,8 @@ location:{self.location!r}\
         if self._organizer:
             result = {"email": str(self._organizer).removeprefix("mailto:")}
 
-            organizer_name = self._organizer.params.get("CN")
-
-            if organizer_name:
-                result.update({"name": organizer_name})
+            if self._organizer.params:
+                result.update({k.lower(): v for k, v in self._organizer.params.items()})
 
             return result
 
@@ -158,11 +155,7 @@ location:{self.location!r}\
                 at_dict = {"email": at.removeprefix("mailto:")}
 
                 if at.params:
-                    at_partstat = at.params.get("PARTSTAT").lower()
-                    at_name = at.params.get("CN")
-                    at_role = at.params.get("ROLE")
-
-                    at_dict.update({"partstat": at_partstat, "name": at_name, "role": at_role})
+                    at_dict.update({a.lower(): v for a, v in at.params.items()})
 
                 result.append(at_dict)
 

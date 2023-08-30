@@ -43,7 +43,7 @@ def bindings() -> dict:
                         'bindings': [
                             {
                                 'description': 'connections',
-                                'hint': '[connect|disconnect|update]',
+                                'hint': '[connect|disconnect|update|profile]',
                                 'label': 'connections',
                                 'icon': static_file('cal.png'),
                                 'bindings': [
@@ -89,7 +89,7 @@ def bindings() -> dict:
                                                 },
                                             ],
                                             "submit": {
-                                                "path": url_for('connections.connect'),
+                                                "path": url_for('connections.connect_account'),
                                                 'expand': EXPAND_DICT,
                                             }
                                         }
@@ -103,7 +103,7 @@ def bindings() -> dict:
                                             "header": "Connect",
                                             "icon": static_file("cal.png"),
                                             "submit": {
-                                                "path": url_for("connections.profile"),
+                                                "path": url_for("connections.profile_account"),
                                                 "expand": EXPAND_DICT,
                                             },
 
@@ -118,7 +118,7 @@ def bindings() -> dict:
                                             "header": "Updating",
                                             "icon": static_file('cal.png'),
                                             "submit": {
-                                                "path": url_for('connections.really_update'),
+                                                "path": url_for('connections.really_update_account'),
                                                 'expand': EXPAND_DICT,
                                             }
                                         }
@@ -132,7 +132,7 @@ def bindings() -> dict:
                                             "header": "Disconnecting",
                                             "icon": static_file('cal.png'),
                                             "submit": {
-                                                "path": url_for('connections.really_delete'),
+                                                "path": url_for('connections.really_delete_account'),
                                                 'expand': EXPAND_DICT,
                                             }
                                         }
@@ -250,7 +250,7 @@ def bindings() -> dict:
                             },
                             {
                                 'description': 'notifications',
-                                'hint': '[create|read|update|delete]',
+                                'hint': '[create|update|delete]',
                                 'label': 'notifications',
                                 'icon': static_file('cal.png'),
                                 'bindings': [
@@ -268,7 +268,7 @@ def bindings() -> dict:
                                         "label": "update",
                                         "description": "update notification for integration with yandex calendar",
                                         "submit": {
-                                            "path": url_for('notifications.update_notification'),
+                                            "path": url_for('notifications.really_update_notification'),
                                             'expand': EXPAND_DICT,
                                         }
                                     },
@@ -277,7 +277,7 @@ def bindings() -> dict:
                                         "label": "delete",
                                         "description": "delete notification for integration with yandex calendar",
                                         "submit": {
-                                            "path": url_for('notifications.delete_notification'),
+                                            "path": url_for('notifications.really_delete_notification'),
                                             'expand': EXPAND_DICT,
                                         }
                                     },

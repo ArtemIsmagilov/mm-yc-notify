@@ -8,7 +8,6 @@ def base_view(calendars: list, template: str, dates: tuple[datetime, datetime]) 
     represents = caldav_searchers.find_conferences_in_some_cals(calendars, dates)
 
     if not represents:
-
         return {
             'type': 'ok',
             'text': 'No conferences',

@@ -8,6 +8,7 @@
           ***timezone*** - form command]
         + disconnect [*disconnection* account from integration - execute command]
         + update [*update* ***login***, ***token***, ***timezone*** - form command ]
+        + profile [*show* info about me(user  attributes) - execute command]
 
     - calendars [module Yandex Calendar API for client]
         + get_a_week [get conferences *for the week* by user timezone, execute command]

@@ -6,7 +6,7 @@ import multiprocessing
 
 # worker_class = 'gthread'
 # workers = multiprocessing.cpu_count() * 2 + 1
-# threads = multiprocessing.cpu_count() * 2 + 1
+threads = multiprocessing.cpu_count() * 2 + 1
 
 bind = [f"{APP_HOST_EXTERNAL}:{APP_PORT_EXTERNAL}"]
 accesslog = '-'

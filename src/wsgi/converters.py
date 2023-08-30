@@ -4,15 +4,13 @@ from wsgi.constants import CONFERENCE_PROPERTIES
 from datetime import datetime, UTC
 from zoneinfo import ZoneInfo
 from sqlalchemy.engine import Row
+import textwrap
 
 
-def get_hours_minutes_with_UTC_from_form(h_m: str, from_timezone: str) -> tuple[str, str]:
-    h, m = map(int, h_m.split(":"))
-
-    dt_tz = datetime.now(ZoneInfo(from_timezone)).replace(hour=h, minute=m)
-    dt_utc = dt_tz.astimezone(UTC)
-
-    return str(dt_utc.hour), str(dt_utc.minute)
+def get_h_m(h_m: str, tz):
+    h, m = h_m.split(":")
+    dt = datetime.now(ZoneInfo(tz)).replace(hour=int(h), minute=int(m)).astimezone(UTC)
+    return dt.hour, dt.minute
 
 
 def get_dt_with_UTC_tz_from_iso(iso: str) -> datetime:
@@ -32,7 +30,7 @@ def dont_clear(iso_data: str) -> bool:
     return inf_d == obj_d
 
 
-def create_conference_table(conf_obj: Conference, new_line='   '):
+def create_conference_table(conf_obj: Conference):
     """
     example table: {'uid': 'id conference', 'timezone': 'UTC', ...}
     """
@@ -41,26 +39,21 @@ def create_conference_table(conf_obj: Conference, new_line='   '):
         v = getattr(conf_obj, p)
         if v:
             if p == "organizer":
-
-                table["organizer"] = "name - {}, email - {}".format(v.get("name"), v.get("email"))
+                v = ", ".join(f"**{attr}** - *{value}*" for attr, value in v.items())
 
             elif p == "attendee":
-                table["attendee"] = "; ".join(", ".join(f"**{attr}** - *{value}*" for attr, value in a.items()) for a in v)
+                v = "; ".join(", ".join(f"**{attr}** - *{value}*" for attr, value in a.items()) for a in v)
 
-            else:
-                brs_v = v.replace("\n", new_line)
+            new_v = v.replace("\n", ' ')
 
-                if len(brs_v) > 155:
-                    brs_v = "".join((brs_v[:155], "..."))
-
-                table[p] = brs_v
+            table[p] = textwrap.shorten(new_v, 155)
 
     header, delimiter, body = " | ".join(table.keys()), "-|" * len(table), " | ".join(table.values())
 
     return f"| {header} |\n|{delimiter}\n| {body} |"
 
 
-def create_row_table(row_obj: Row, new_line='   '):
+def create_row_table(row_obj: Row):
     """
     example table: {'uid': 'id conference', 'timezone': 'UTC', ...}
     """
@@ -68,13 +61,17 @@ def create_row_table(row_obj: Row, new_line='   '):
     for p in CONFERENCE_PROPERTIES:
         v = getattr(row_obj, p)
         if v:
-            brs_v = v.replace("\n", new_line)
+            new_v = v.replace("\n", ' ')
 
-            if len(brs_v) > 155:
-                brs_v = "".join((brs_v[:155], "..."))
-
-            table[p] = brs_v
+            table[p] = textwrap.shorten(new_v, 155)
 
     header, delimiter, body = " | ".join(table.keys()), "-|" * len(table), " | ".join(table.values())
 
     return f"| {header} |\n|{delimiter}\n| {body} |"
+
+
+def equal_conferences(conf, other_conf):
+    for p in CONFERENCE_PROPERTIES:
+        if getattr(conf, p) != getattr(other_conf, p):
+            return False
+    return True

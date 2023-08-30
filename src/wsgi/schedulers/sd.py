@@ -10,9 +10,9 @@ import logging
 
 def init_app(app):
     if DEBUG:
-        logging.basicConfig(level=DEBUG)
+        logging.basicConfig()
         apscheduler_logger = logging.getLogger('apscheduler')
-        apscheduler_logger.setLevel(DEBUG)
+        apscheduler_logger.setLevel('DEBUG')
     # scheduler.add_listener(my_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
     # app.cli.add_command(CLIs.something_command)
     scheduler.start()

@@ -1,7 +1,7 @@
 from wsgi.settings import DB_URL
 
 from sqlalchemy import (
-    MetaData, Table, Column, Integer, String, Boolean, ForeignKey, create_engine
+    MetaData, Table, Column, Integer, String, Boolean, ForeignKey, create_engine, text
 )
 
 engine = create_engine(DB_URL)
@@ -77,7 +77,7 @@ class User:
 
         return result.first()
 
-    def __init__(self, mm_user_id, login, token, timezone, e_c, ch_stat):
+    def __init__(self, mm_user_id, login, token, timezone, e_c=False, ch_stat=False):
         self.mm_user_id = mm_user_id
         self.login = login
         self.token = token
@@ -156,7 +156,6 @@ class YandexCalendar:
 
     @classmethod
     def remove_cal(cls, cal_id: str):
-
         with engine.begin() as connection:
             c = cls.yandex_calendar_table.columns
 
@@ -171,7 +170,6 @@ class YandexCalendar:
 
     @classmethod
     def remove_cals(cls, user_id: int):
-
         with engine.begin() as connection:
             c = cls.yandex_calendar_table.columns
 
@@ -196,6 +194,13 @@ class YandexCalendar:
                 .values(kwargs)
                 .returning(c)
             )
+
+        return result.first()
+
+    @classmethod
+    def custom_stmt(cls, stmt: str, params: dict | list):
+        with engine.begin() as connection:
+            result = connection.execute(stmt, params)
 
         return result.first()
 
