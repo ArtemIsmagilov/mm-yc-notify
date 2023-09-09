@@ -10,8 +10,7 @@ import caldav.lib.error as caldav_errs
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from sqlalchemy.engine import Row
-
-from typing import Iterator
+from typing import Sequence
 
 
 def take_principal(user: Row) -> Principal | dict:
@@ -38,11 +37,7 @@ def take_principal(user: Row) -> Principal | dict:
             'text': 'Unknown Error. Please, contact with your admin platform.'
         }
 
-        logging.error(
-            'Error with mm_user_id=%s. <###traceback###\n%s\n###traceback###>\n\n',
-            mm_user_id,
-            traceback.format_exc(),
-        )
+        logging.error('<###traceback###\n%s\n###traceback###>\n\n', mm_user_id, traceback.format_exc())
 
     return principal
 
@@ -161,7 +156,7 @@ def get_cals_with_confs(user: Row) -> dict | list[Calendar, ...] | None:
     return [c for c in principal.calendars() if caldav_searchers.find_conferences_in_one_cal(c, (start, end))]
 
 
-def get_all_calendars(user: Row) -> list[Calendar, ...] | dict | None:
+def get_all_calendars(user: Row) -> list[Calendar, ...] | dict:
     principal = take_principal(user)
 
     if type(principal) is dict:
@@ -170,7 +165,7 @@ def get_all_calendars(user: Row) -> list[Calendar, ...] | dict | None:
     return principal.calendars()
 
 
-def check_exist_calendars_by_cal_id(user: Row, cals_id: Iterator[str]) -> list[Calendar, ...] | dict:
+def check_exist_calendars_by_cal_id(user: Row, cals_id: Sequence[str]) -> list[Calendar, ...] | dict:
     principal = take_principal(user)
 
     if type(principal) is dict:

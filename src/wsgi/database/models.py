@@ -1,10 +1,10 @@
-from wsgi.settings import DB_URL
+from wsgi.settings import envs
 
 from sqlalchemy import (
     MetaData, Table, Column, Integer, String, Boolean, ForeignKey, create_engine, text
 )
 
-engine = create_engine(DB_URL)
+engine = create_engine(envs.DB_URL)
 metadata_obj = MetaData()
 
 
@@ -77,7 +77,7 @@ class User:
 
         return result.first()
 
-    def __init__(self, mm_user_id, login, token, timezone, e_c=False, ch_stat=False):
+    def __init__(self, mm_user_id: str, login: str, token: str, timezone: str, e_c=False, ch_stat=False):
         self.mm_user_id = mm_user_id
         self.login = login
         self.token = token
@@ -194,13 +194,6 @@ class YandexCalendar:
                 .values(kwargs)
                 .returning(c)
             )
-
-        return result.first()
-
-    @classmethod
-    def custom_stmt(cls, stmt: str, params: dict | list):
-        with engine.begin() as connection:
-            result = connection.execute(stmt, params)
 
         return result.first()
 

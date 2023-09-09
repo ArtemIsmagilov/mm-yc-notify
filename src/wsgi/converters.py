@@ -4,7 +4,8 @@ from wsgi.constants import CONFERENCE_PROPERTIES
 from datetime import datetime, UTC
 from zoneinfo import ZoneInfo
 from sqlalchemy.engine import Row
-import textwrap
+from caldav import Calendar
+import textwrap, caldav
 
 
 def get_h_m(h_m: str, tz):
@@ -65,9 +66,7 @@ def create_row_table(row_obj: Row):
 
             table[p] = textwrap.shorten(new_v, 155)
 
-    header, delimiter, body = " | ".join(table.keys()), "-|" * len(table), " | ".join(table.values())
-
-    return f"| {header} |\n|{delimiter}\n| {body} |"
+    return create_table_md(table)
 
 
 def equal_conferences(conf, other_conf):
@@ -75,3 +74,24 @@ def equal_conferences(conf, other_conf):
         if getattr(conf, p) != getattr(other_conf, p):
             return False
     return True
+
+
+def create_table_md(table: dict) -> str:
+    header, delimiter, body = " | ".join(table.keys()), "-|" * len(table), " | ".join(table.values())
+
+    return f"| {header} |\n|{delimiter}\n| {body} |"
+
+
+def hex_color_calendar(cal: Calendar):
+    color = cal.get_properties([caldav.elements.ical.CalendarColor()])
+    _, hex_color = color.popitem()
+
+    return hex_color
+
+
+def client_hex_calendar(cal: Calendar):
+    pass
+
+
+def client_id_calendar(c: Calendar):
+    return f'{c.get_display_name()}({c.id})'

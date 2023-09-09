@@ -1,7 +1,7 @@
 .env
+.test.env
+
 postgres/
-tests
-resp_data.py
 .idea
 .vscode/
 mm_logs/

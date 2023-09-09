@@ -1,7 +1,7 @@
 from wsgi.calendars import caldav_searchers
 from wsgi.calendars.conference import Conference
-from datetime import datetime
 
+from datetime import datetime
 from caldav import Calendar
 from jinja2 import Environment, PackageLoader, select_autoescape
 

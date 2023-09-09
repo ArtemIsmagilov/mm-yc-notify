@@ -8,7 +8,7 @@ bp = Blueprint('checks', __name__, url_prefix='/checks')
 
 @bp.route('check_account', methods=['POST'])
 def check_account() -> dict:
-    return check_my_account.check_user(g.user)
+    return check_my_account.check_user(g.user, request)
 
 
 @bp.route('check_scheduler', methods=['POST'])

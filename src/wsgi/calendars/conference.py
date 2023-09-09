@@ -3,6 +3,7 @@ from icalendar import Event
 from zoneinfo import ZoneInfo
 from datetime import datetime, date
 
+
 class Conference:
     __slots__ = (
         "_uid",

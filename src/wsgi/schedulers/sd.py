@@ -1,5 +1,5 @@
 from wsgi.database.models import engine, metadata_obj
-from wsgi.settings import DEBUG
+from wsgi.settings import envs
 
 from flask import current_app
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -9,13 +9,15 @@ import logging
 
 
 def init_app(app):
-    if DEBUG:
+    if envs.DEBUG:
         logging.basicConfig()
         apscheduler_logger = logging.getLogger('apscheduler')
         apscheduler_logger.setLevel('DEBUG')
     # scheduler.add_listener(my_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
     # app.cli.add_command(CLIs.something_command)
-    scheduler.start()
+
+    if not scheduler.running:
+        scheduler.start()
 
 
 def my_listener(event):

@@ -3,6 +3,7 @@ from wsgi.calendars import caldav_api
 from wsgi.constants import EXPAND_DICT, UTCs
 from wsgi.database import db
 from wsgi.schedulers import sd
+from wsgi.converters import create_table_md, client_id_calendar
 
 from flask import Request, url_for
 from sqlalchemy.engine import Row
@@ -21,6 +22,7 @@ def profile(user: Row, request: Request):
             timezone=user.timezone,
             notify_every_confernece=str(user.e_c),
             changing_status_every_confernece=str(user.ch_stat),
+            sync_calendars=str(None),
         )
 
         get_user_cals = db.YandexCalendar.get_cals(user_id=user.id)
@@ -31,17 +33,9 @@ def profile(user: Row, request: Request):
             if type(cals) is dict:
                 return cals
 
-            account.update(sync_calendars=', '.join(f'**{c.get_display_name()}**({c.id})' for c in cals))
+            account.update(sync_calendars=', '.join(client_id_calendar(c) for c in cals))
 
-        else:
-
-            account.update(sync_calendars=str(None))
-
-    header = " | ".join(account.keys())
-    delimiter = "-|" * len(account)
-    body = " | ".join(account.values())
-
-    text = f"| {header} |\n|{delimiter}\n| {body} |"
+    text = create_table_md(account)
 
     return {
         'type': 'ok',
@@ -57,6 +51,8 @@ def create_account(request: Request) -> dict:
     token = values['token']
     timezone = values['timezone']['value']
 
+    mm_username = request.json['context']['acting_user']['username']
+
     principal = caldav_api.take_principal(db.User(mm_user_id=mm_user_id, login=login, token=token, timezone=timezone))
 
     if type(principal) is dict:
@@ -64,7 +60,7 @@ def create_account(request: Request) -> dict:
 
     msg = {
         'type': 'ok',
-        'text': 'Successfully CREATE integration with yandex calendar'
+        'text': f'@{mm_username}, you successfully CREATE integration with yandex calendar'
     }
 
     result = db.User.add_user(mm_user_id=mm_user_id, login=login, token=token, timezone=timezone, e_c=False,
@@ -138,13 +134,15 @@ def update_account_form():
     }
 
 
-def update_account(request: Request, user: Row) -> dict:
+def update_account(request: Request) -> dict:
     values = request.json['values']
 
     mm_user_id = request.json['context']['acting_user']['id']
     login = values['login']
     token = values['token']
     timezone = values['timezone']['value']
+
+    mm_username = request.json['context']['acting_user']['username']
 
     principal = caldav_api.take_principal(db.User(mm_user_id=mm_user_id, login=login, token=token, timezone=timezone))
 
@@ -153,7 +151,7 @@ def update_account(request: Request, user: Row) -> dict:
 
     msg = {
         'type': 'ok',
-        'text': ('Successfully UPDATE integration with yandex calendar. '
+        'text': (f'@{mm_username}, you successfully UPDATE integration with yandex calendar. '
                  'Your scheduler notifications was deleted if is existed'),
     }
 
@@ -185,10 +183,11 @@ def really_delete_account(request: Request):
 
 def delete_account(request: Request) -> dict:
     mm_user_id = request.json['context']['acting_user']['id']
+    mm_username = request.json['context']['acting_user']['username']
 
     msg = {
         'type': 'ok',
-        'text': ('Successfully REMOVE integration with yandex calendar. '
+        'text': (f'@{mm_username}, you successfully REMOVE integration with yandex calendar. '
                  'Your scheduler notifications was deleted if is existed.'),
     }
 

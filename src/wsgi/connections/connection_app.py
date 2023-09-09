@@ -32,7 +32,7 @@ def update_account_form() -> dict:
 @bp.route('update_account', methods=['POST'])
 @auth_required
 def update_account() -> dict:
-    return connection_handlers.update_account(request, g.user)
+    return connection_handlers.update_account(request)
 
 
 @bp.route('really_delete_account', methods=['POST'])

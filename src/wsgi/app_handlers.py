@@ -1,13 +1,13 @@
 from wsgi.database import db
 from wsgi.constants import EXPAND_DICT, UTCs
-from wsgi.settings import STATIC_PATH, APP_URL_EXTERNAL
+from wsgi.settings import envs
 
 from flask import Request, g, url_for, render_template
 import os
 
 
 def static_file(filename) -> str:
-    return os.path.join(STATIC_PATH, filename)
+    return os.path.join(envs.STATIC_PATH, filename)
 
 
 def get_user(request: Request):
@@ -354,6 +354,6 @@ def manifest() -> dict:
             'expand': EXPAND_DICT,
         },
         'http': {
-            'root_url': APP_URL_EXTERNAL,
+            'root_url': envs.APP_URL_EXTERNAL,
         },
     }

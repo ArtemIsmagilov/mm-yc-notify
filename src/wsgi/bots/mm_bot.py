@@ -1,42 +1,53 @@
-from wsgi.settings import MM_BOT_OPTIONS, MM_APP_TOKEN
+from wsgi.settings import envs
 
 import logging, traceback
 from mattermostautodriver import Driver
 from httpx import HTTPError
 
 
+def decorator_http_error(func):
+    def wrapper(*args, **kwargs):
+        try:
+
+            return func(*args, **kwargs)
+
+        except HTTPError as exp:
+
+            logging.error("<###traceback###\n%s\n###traceback###>\n\n", traceback.format_exc())
+
+            return exp
+
+    return wrapper
+
+
+@decorator_http_error
 def send_msg_client(mm_user_id, msg):
-    try:
-        bot_create_direct_channel = bot.channels.create_direct_channel([mm_user_id, bot.client.userid])
+    bot_create_direct_channel = bot.channels.create_direct_channel([mm_user_id, bot.client.userid])
 
-        bot_create_post = bot.posts.create_post(
-            {
-                "channel_id": bot_create_direct_channel["id"],
-                "message": msg,
-            }
-        )
-
-    except HTTPError as exp:
-        logging.error(
-            "Error with mm_user_id=%s. <###traceback###\n%s\n###traceback###>\n\n",
-            mm_user_id, traceback.format_exc(),
-        )
+    return bot.posts.create_post(
+        {
+            "channel_id": bot_create_direct_channel["id"],
+            "message": msg,
+        }
+    )
 
 
+@decorator_http_error
 def update_custom_status(mm_user_id: str, new_options: dict):
-    try:
-
-        bot_update_user_custom_status = bot.status.update_user_custom_status(mm_user_id, new_options)
-
-    except HTTPError as exp:
-
-        logging.error(
-            'Error with user_id=%s. <###traceback###\n%s###traceback###>',
-            mm_user_id, traceback.format_exc()
-        )
+    return bot.status.update_user_custom_status(mm_user_id, new_options)
 
 
-bot = Driver(MM_BOT_OPTIONS)
+@decorator_http_error
+def get_user_by_username(username: str):
+    return bot.users.get_user_by_username(username)
 
-if MM_APP_TOKEN:
+
+@decorator_http_error
+def create_user(options: dict):
+    return bot.users.create_user(options)
+
+
+bot = Driver(envs.MM_BOT_OPTIONS)
+
+if envs.MM_APP_TOKEN:
     bot.login()

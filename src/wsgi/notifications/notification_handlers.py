@@ -1,15 +1,16 @@
 from wsgi.app_handlers import static_file
 from wsgi.calendars import caldav_api
 from wsgi.constants import EXPAND_DICT, TIMEs
-from wsgi.converters import get_h_m
+from wsgi.converters import get_h_m, client_id_calendar
 from wsgi.notifications import jobs
 from wsgi.schedulers import sd
 from wsgi.database import db
-from wsgi.settings import CHECK_EVENTS
+from wsgi.settings import envs
 
 from flask import Request, render_template, url_for
 from sqlalchemy.engine import Row
 import caldav.lib.error as caldav_errs
+from caldav import Calendar
 from apscheduler.triggers.cron import CronTrigger
 
 
@@ -29,7 +30,7 @@ def create_notification(user: Row, request: Request) -> dict:
     if type(exists_cals) is dict:
         return exists_cals
 
-    cals = [{"label": f'{c.get_display_name()}({c.id})', "value": c.id} for c in exists_cals]
+    cals = _form_calendars(exists_cals)
 
     if not cals:
         return {
@@ -159,10 +160,10 @@ def continue_create_notification(user: Row, request: Request) -> dict:
     [jobs.load_updated_added_deleted_events(user, sync_cal, notify=False) for sync_cal in sync_cals]
 
     # job3 if CHECK_EVENTS does exist in env
-    if CHECK_EVENTS:
+    if envs.CHECK_EVENTS:
         job3 = sd.scheduler.add_job(
             func=jobs.check_events_job,
-            trigger=CronTrigger.from_crontab(CHECK_EVENTS),
+            trigger=CronTrigger.from_crontab(envs.CHECK_EVENTS),
             args=(mm_user_id,),
             id=f'{mm_user_id}(check-events)',
             name=user.login,
@@ -216,7 +217,7 @@ def update_notification(user: Row, request: Request) -> dict:
     if type(exists_cals) is dict:
         return exists_cals
 
-    cals = [{"label": f'{c.get_display_name()}({c.id})', "value": c.id} for c in exists_cals]
+    cals = _form_calendars(exists_cals)
 
     if not cals:
         return {
@@ -326,3 +327,7 @@ def delete_notification(user: Row, request: Request) -> dict:
             'type': 'ok',
             'text': '# @{}, you successfully DELETE scheduler notifications'.format(mm_username),
         }
+
+
+def _form_calendars(calendars: list[Calendar, ...]) -> tuple[dict, ...]:
+    return tuple({"label": client_id_calendar(c), "value": c.id} for c in calendars)

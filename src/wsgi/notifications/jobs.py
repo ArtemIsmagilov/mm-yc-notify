@@ -71,7 +71,6 @@ def check_events_job(mm_user_id):
 
 def return_latest_custom_status_job(mm_user_id: str, latest_custom_status: str):
     options = json.loads(latest_custom_status)
-    print(repr(options), repr(latest_custom_status))
 
     update_custom_status(mm_user_id, options)
 
