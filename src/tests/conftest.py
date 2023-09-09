@@ -11,7 +11,7 @@ from wsgi.database import db
 settings.envs = settings.Testing()
 
 # create test user, if it doesn't exist
-test_user = get_user_by_username(username='test_username')
+test_user = get_user_by_username(username=settings.envs.test_client_username)
 
 if isinstance(test_user, HTTPError):
     test_user = create_user({
