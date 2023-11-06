@@ -382,6 +382,36 @@
 - __yandex_calendar__ <br>![tb3](imgs/tb_yandex_calendar.PNG)
 - yandex_conference <br>![tb4](imgs/tb_yandex_conference.PNG)
 
+## Пробуем новую архитектуру
+
+* Повысили эффективность и производительность кода сделав его асинхронным(asyncio, Quart).
+* Добавили брокер сообщений rabbitmq через который очень быстро и надёжно передаются сообщения. (Раньше просто БД)
+* Внедрили библиотеку фоновых задач Dramatiq(Для наших задач самое то)
+* Есть идея хранить данные синхронизированных календарей и конференций в Redis так как обмен данными очень быстрый,
+но структура данных не совсем ключь-значние(пока думаем)
+* Требуется нагрузочное и mock тестирование
+* Можно удалить middleware Prometheus в dramatiq(в 2 версии автор собирается убрать из коробки)
+
+1. rabbitmq
+    Добавляем переменные окружения в .env
+    ```bash
+    sudo docker compose up -d
+    ```
+2. worker dramatiq-gevent
+    ```bash
+    dramatiq-gevent app.notifications.tasks -p 8 -t 250
+    ```
+3. events scheduler
+    ```bash
+    python -m app.notifications.task0_scheduler
+    ```
+4. web server
+   ```bash
+   bash run-server.bash
+   ```
+5. После проверки корректности работы всех компонентов добавляем логирование
+6. Я попытался засунуть всё это в докер и у меня получилась каша.
+
 ## Полезные ссылки
 
 - Scheduling All Kinds of Recurring Jobs with Python - https://martinheinz.dev/blog/39
@@ -404,6 +434,15 @@
   key - https://stackoverflow.com/questions/17645609/add-new-column-with-foreign-key-constraint-in-one-command
 - What is a reasonable code coverage % for unit tests (and
   why)? - https://stackoverflow.com/questions/90002/what-is-a-reasonable-code-coverage-for-unit-tests-and-why
+- sync/thread/async https://ru.stackoverflow.com/questions/1159101/python-thread-multiprocessing-asyncio
+- rebbitmq docker-compose https://habr.com/ru/companies/slurm/articles/704208/
+- periodic task https://docs.celeryq.dev/en/latest/userguide/periodic-tasks.html#using-custom-scheduler-classes
+- prefork vs eventlet https://stackoverflow.com/questions/29952907/celery-eventlet-pool-does-not-improve-execution-speed-of-asynchronous-web-requ
+- Asynchronous yield from https://peps.python.org/pep-0525/#asynchronous-yield-from
+- SQLAlchemy Transactions https://docs.sqlalchemy.org/en/20/core/connections.html#begin-once 
+- Flower --broker_api https://github.com/mher/flower/issues/1036
+- rabbitmq (unacked,ready) https://stackoverflow.com/questions/31915773/rabbitmq-what-are-ready-and-unacked-types-of-messages
+- rabbitmq docker environs https://www.rabbitmq.com/configure.html#supported-environment-variables
 
 ## Вопрос-ответ
 

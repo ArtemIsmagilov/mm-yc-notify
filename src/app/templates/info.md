@@ -1,4 +1,4 @@
-# Hi, @test_username.
+# Hi, @{{ mm_username }}.
 
 ## Info about App
 

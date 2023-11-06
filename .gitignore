@@ -1,5 +1,7 @@
 .env
 .test.env
+celerybeat-schedule
+celery.log
 
 postgres/
 .idea
