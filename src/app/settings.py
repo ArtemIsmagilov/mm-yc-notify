@@ -18,8 +18,6 @@ class Conf(ABC):
         self.APP_URL_INTERNAL = os.environ['APP_URL_INTERNAL']
         self.APP_URL_EXTERNAL = os.environ['APP_URL_EXTERNAL']
 
-        self.STATIC_PATH = os.environ['STATIC_PATH']
-
         self.CHECK_EVENTS = int(os.environ['CHECK_EVENTS'])
 
         # quart config

@@ -2,8 +2,8 @@ from ..notifications import tasks
 from ..app_handlers import static_file
 from ..calendars import caldav_api
 from ..constants import EXPAND_DICT, TIMEs
-from ..converters import get_h_m, client_id_calendar, get_delay_daily
-from ..decorators.account_decorators import dependency_principal, auth_required
+from ..converters import get_h_m_utc, client_id_calendar, get_delay_daily
+from ..decorators.account_decorators import dependency_principal, auth_required, required_account_does_not_exist
 from ..sql_app.crud import YandexCalendar, User
 
 import asyncio
@@ -118,7 +118,7 @@ async def continue_create_notification(
     e_c = values['Notification']
     ch_stat = values['Status']
 
-    h, m = get_h_m(daily_clock, user.timezone)
+    h, m = get_h_m_utc(daily_clock, user.timezone)
 
     tasks_cals_generator = (
         asyncio.create_task(asyncio.to_thread(principal.calendar, cal_id=c['value'])) for c in cals_form
@@ -162,7 +162,6 @@ async def continue_create_notification(
     # required job1 daily notification at current clock
 
     delay = get_delay_daily(h, m)
-
     tasks.task1.send_with_options(args=(mm_user_id, h, m), delay=delay)
 
     # job2 if e_c or ch_stat (is optional)
@@ -297,8 +296,86 @@ async def continue_update_notification(
         principal: Principal,
 ):
     await YandexCalendar.remove_cals(conn, user.mm_user_id)
+    # copy ->  continue_create_notification
+    data = await request.json
+    context = data['context']
+    acting_user = context['acting_user']
+    mm_user_id, mm_username = acting_user['id'], acting_user['username']
 
-    return await continue_create_notification(conn, user, principal)
+    values = data["values"]
+
+    cals_form = values['Calendars']
+
+    daily_clock = values['Time']['value']
+
+    e_c = values['Notification']
+    ch_stat = values['Status']
+
+    h, m = get_h_m_utc(daily_clock, user.timezone)
+
+    tasks_cals_generator = (
+        asyncio.create_task(asyncio.to_thread(principal.calendar, cal_id=c['value'])) for c in cals_form
+    )
+
+    async with asyncio.TaskGroup() as tg:
+
+        tasks_sync_cals = set()
+
+        for task in asyncio.as_completed(tasks_cals_generator):
+
+            cal = await task
+
+            try:
+
+                tasks_sync_cals.add(tg.create_task(asyncio.to_thread(cal.objects_by_sync_token, load_objects=True)))
+
+            except caldav_errs.NotFoundError as exp:
+
+                return {
+                    'type': 'error',
+                    'text': 'Calendar not found in yandex calendar server'
+                }
+
+    sync_cals = [
+        {'mm_user_id': user.mm_user_id, 'cal_id': task.result().calendar.id, 'sync_token': task.result().sync_token}
+        for task in tasks_sync_cals
+    ]
+
+    async with asyncio.TaskGroup() as tg:
+
+        tg.create_task(User.update_user(conn, user.mm_user_id, e_c=e_c, ch_stat=ch_stat))
+
+        tg.create_task(YandexCalendar.add_many_cals(conn, sync_cals))
+
+    async with asyncio.TaskGroup() as tg:
+
+        for task in tasks_sync_cals:
+            tg.create_task(tasks.load_updated_added_deleted_events(conn, user, task.result(), notify=False))
+
+    # required job1 daily notification at current clock
+
+    delay = get_delay_daily(h, m)
+    tasks.task1.send_with_options(args=(mm_user_id, h, m), delay=delay)
+
+    # job2 if e_c or ch_stat (is optional)
+    # in check event
+
+    # job3 if CHECK_EVENTS
+    # in check event
+
+    return {
+        'type': 'ok',
+        'text': await render_template(
+            'created_jobs.md',
+            mm_username=mm_username,
+            calendars_names=cals_form,
+            timezone=user.timezone,
+            daily_clock=daily_clock,
+            e_c=e_c,
+            ch_stat=ch_stat,
+        )
+    }
+    # copy ->  continue_create_notification
 
 
 async def really_delete_notification():
@@ -342,7 +419,7 @@ async def delete_notification(
 
         return {
             'type': 'ok',
-            'text': '# @{}, you successfully DELETE scheduler notifications'.format(mm_username),
+            'text': '# @%s, you successfully DELETE scheduler notifications' % mm_username,
         }
 
 

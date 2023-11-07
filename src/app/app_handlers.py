@@ -1,11 +1,10 @@
 from .constants import EXPAND_DICT, UTCs
 from .settings import envs
 from quart import url_for, render_template, request
-import os
 
 
 def static_file(filename) -> str:
-    return os.path.join(envs.STATIC_PATH, filename)
+    return '%s/%s/%s' % (envs.APP_URL_EXTERNAL, 'static', filename)
 
 
 async def help_info() -> dict:

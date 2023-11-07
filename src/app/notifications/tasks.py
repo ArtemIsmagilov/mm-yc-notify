@@ -15,12 +15,15 @@ from ..calendars.caldav_funcs import take_principal
 from ..calendars.conference import Conference
 from ..converters import (
     get_dt_with_UTC_tz_from_iso, iso1_gt_iso2, dont_clear, create_conference_table, create_row_table, equal_conferences,
-    get_delay_next_event, get_delay_return_status, get_delay_daily
+    get_delay_with_dtstart, get_delay_daily
 )
 from ..notifications import notification_views
 from ..sql_app.crud import YandexConference, YandexCalendar, User
 from ..sql_app.database import get_conn
 from ..notifications.worker import *
+
+if envs.DEBUG:
+    logging.basicConfig(level=logging.DEBUG)
 
 
 async def task0():
@@ -34,7 +37,7 @@ async def task0():
 async def task1(mm_user_id: str, hour: int, minute: int):
     """daily_notification_job"""
     logging.debug('daily_notification_job(%s, %s, %s)', mm_user_id, hour, minute)
-    asyncio.create_task(daily_notification_job(mm_user_id, hour, minute))
+    await daily_notification_job(mm_user_id, hour, minute)
 
 
 # task-next-conf
@@ -83,7 +86,6 @@ async def _load_changes_events(conn: AsyncConnection, principal: Principal, user
 
 
 async def check_events_job():
-    print('check_events_job')
     async with get_conn() as conn:
         async for user in User.all_users(conn):
             principal = await take_principal(user.login, user.token)
@@ -123,7 +125,7 @@ async def change_status_job(mm_user_id: str, expires_at: str):
         mm_user = await get_user_by_mm_user_id(mm_user_id)
 
         run_date = datetime.fromisoformat(expires_at)
-        delay = get_delay_return_status(run_date)
+        delay = get_delay_with_dtstart(run_date)
 
         new_options = {"emoji": "calendar", 'text': 'In a meeting', 'expires_at': expires_at}
         props = mm_user.get('props', {})
@@ -168,7 +170,6 @@ async def change_status_job(mm_user_id: str, expires_at: str):
                 asyncio.create_task(update_custom_status(mm_user_id, new_options))
 
         if current_options.get('expires_at') is None or iso1_gt_iso2(expires_at, current_options['expires_at']):
-
             asyncio.create_task(update_custom_status(mm_user_id, new_options))
 
 
@@ -231,7 +232,7 @@ async def notify_next_conference_job(mm_user_id: str, uid: str) -> None:
                     asyncio.create_task(send_msg_client(mm_user_id, msg, props))
 
                 if user.ch_stat:
-                    delay = get_delay_return_status(datetime.fromisoformat(conf_obj.dtstart))
+                    delay = get_delay_with_dtstart(datetime.fromisoformat(conf_obj.dtstart))
 
                     task3.send_with_options(args=(mm_user_id, conf_obj.dtend,), delay=delay)
 
@@ -293,7 +294,6 @@ async def load_updated_added_deleted_events(
     calendar_name = str(sync_cal.calendar)
 
     for sync_event in sync_cal:
-        print(sync_event)
         # if deleted conference
         if not sync_event.data:
 
@@ -388,9 +388,12 @@ async def load_updated_added_deleted_events(
                     asyncio.create_task(send_msg_client(mm_user_id, represents.get('text')))
 
             # new conference + user e_c or ch_stat + start date > now + 15 min
-            if (user.e_c or user.ch_stat) and caldav_filters.start_gt_now(conf.dtstart):# and caldav_filters.start_gt_15_min(conf.dtstart):
-                start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(seconds=10)# - timedelta(minutes=10)
 
-                delay = get_delay_next_event(start_job)
+            # if (user.e_c or user.ch_stat) and caldav_filters.start_gt_15_min(conf.dtstart):  # production
+            if (user.e_c or user.ch_stat) and caldav_filters.start_gt_now(conf.dtstart):  # debug
+                start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(seconds=10)  # debug
+                # start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(minutes=10) # production
+
+                delay = get_delay_with_dtstart(start_job)
 
                 task2.send_with_options(args=(mm_user_id, conf.uid), delay=delay)

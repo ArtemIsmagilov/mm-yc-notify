@@ -6,29 +6,25 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.engine import Row
 from caldav import Calendar
 import textwrap, caldav
+from apscheduler.triggers.cron import CronTrigger
 
 
-def get_delay_daily(hour, minute):
-    tomorrow = datetime.now(UTC).replace(hour=hour, minute=minute, second=0) + timedelta(days=1)
-    delay = round((tomorrow - datetime.now(UTC)).total_seconds()) * 1000
+def get_delay_daily(hour: int, minute: int):
+    next_dt = CronTrigger(hour=hour, minute=minute, timezone=UTC).next()
+    now_dt = datetime.now(UTC)
+    delay = round((next_dt - now_dt).total_seconds()) * 1000
     return delay
 
 
-def get_delay_next_event(start_event: datetime):
-    now = datetime.now(UTC)
-    delay = round((start_event - now).total_seconds()) * 1000
-    return delay
-
-
-def get_delay_return_status(dtstart: datetime):
+def get_delay_with_dtstart(dtstart: datetime):
     now = datetime.now(UTC)
     delay = round((dtstart - now).total_seconds()) * 1000
     return delay
 
 
-def get_h_m(h_m: str, tz):
-    h, m = h_m.split(":")
-    dt = datetime.now(ZoneInfo(tz)).replace(hour=int(h), minute=int(m)).astimezone(UTC)
+def get_h_m_utc(h_m: str, tz: str):
+    h, m = map(int, h_m.split(":"))
+    dt = datetime.now(ZoneInfo(tz)).replace(hour=h, minute=m).astimezone(UTC)
     return dt.hour, dt.minute
 
 
