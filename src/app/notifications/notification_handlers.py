@@ -3,7 +3,7 @@ from ..app_handlers import static_file
 from ..calendars import caldav_api
 from ..constants import EXPAND_DICT, TIMEs
 from ..converters import get_h_m_utc, client_id_calendar, get_delay_daily
-from ..decorators.account_decorators import dependency_principal, auth_required, required_account_does_not_exist
+from ..decorators.account_decorators import dependency_principal, auth_required
 from ..sql_app.crud import YandexCalendar, User
 
 import asyncio
