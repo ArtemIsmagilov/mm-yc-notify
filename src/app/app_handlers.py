@@ -1,10 +1,10 @@
 from .constants import EXPAND_DICT, UTCs
-from .settings import envs
+from settings import Conf
 from quart import url_for, render_template, request
 
 
 def static_file(filename) -> str:
-    return '%s/%s/%s' % (envs.APP_URL_EXTERNAL, 'static', filename)
+    return '%s/%s/%s' % (Conf.APP_URL_EXTERNAL, 'static', filename)
 
 
 async def help_info() -> dict:
@@ -348,6 +348,6 @@ def manifest() -> dict:
             'expand': EXPAND_DICT,
         },
         'http': {
-            'root_url': envs.APP_URL_EXTERNAL,
+            'root_url': Conf.APP_URL_EXTERNAL,
         },
     }

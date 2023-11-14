@@ -1,14 +1,12 @@
-from contextlib import asynccontextmanager
 from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import create_async_engine
+from settings import Conf
 
-from app.settings import envs
-
-engine = create_async_engine(envs.DB_URL, echo=True if envs.DEBUG else None)
+engine = create_async_engine(Conf.DB_URL, echo=True if Conf.DEBUG else None)
 metadata_obj = MetaData()
 
 
-@asynccontextmanager
-async def get_conn():
-    async with engine.begin() as conn:
-        yield conn
+# Dependency
+def get_conn():
+    conn = engine.begin()
+    return conn

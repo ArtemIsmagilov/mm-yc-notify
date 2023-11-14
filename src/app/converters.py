@@ -1,7 +1,7 @@
 from .calendars.conference import Conference
 from .constants import CONFERENCE_PROPERTIES
 
-from datetime import datetime, UTC, timedelta
+from datetime import datetime, UTC
 from zoneinfo import ZoneInfo
 from sqlalchemy.engine import Row
 from caldav import Calendar

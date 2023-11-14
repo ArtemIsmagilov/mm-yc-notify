@@ -1,3 +1,4 @@
+from .. import dict_responses
 from ..notifications import tasks
 from ..app_handlers import static_file
 from ..calendars import caldav_api
@@ -30,10 +31,7 @@ async def create_notification(
     first_cal = await YandexCalendar.get_first_cal(conn, mm_user_id)
 
     if first_cal:
-        return {
-            'type': 'error',
-            'text': '# @{}, you already have notify scheduler\n'.format(mm_username),
-        }
+        return dict_responses.is_exists_scheduler(mm_username)
 
     exists_cals = await caldav_api.get_all_calendars(principal=principal)
 
@@ -118,6 +116,11 @@ async def continue_create_notification(
     e_c = values['Notification']
     ch_stat = values['Status']
 
+    first_cal = await YandexCalendar.get_first_cal(conn, mm_user_id)
+
+    if first_cal:
+        return dict_responses.is_exists_scheduler(mm_username)
+
     h, m = get_h_m_utc(daily_clock, user.timezone)
 
     tasks_cals_generator = (
@@ -138,10 +141,7 @@ async def continue_create_notification(
 
             except caldav_errs.NotFoundError as exp:
 
-                return {
-                    'type': 'error',
-                    'text': 'Calendar not found in yandex calendar server'
-                }
+                return dict_responses.calendar_not_found()
 
     sync_cals = [
         {'mm_user_id': user.mm_user_id, 'cal_id': task.result().calendar.id, 'sync_token': task.result().sync_token}
@@ -162,7 +162,7 @@ async def continue_create_notification(
     # required job1 daily notification at current clock
 
     delay = get_delay_daily(h, m)
-    tasks.task1.send_with_options(args=(mm_user_id, h, m), delay=delay)
+    asyncio.to_thread(tasks.task1.send_with_options, args=(mm_user_id, h, m), delay=delay)
 
     # job2 if e_c or ch_stat (is optional)
     # in check event
@@ -215,10 +215,7 @@ async def update_notification(
     mm_user_id, mm_username = acting_user['id'], acting_user['username']
 
     if not await YandexCalendar.get_first_cal(conn, mm_user_id):
-        return {
-            'type': 'error',
-            'text': '# @{}, you have not notify scheduler\n'.format(mm_username),
-        }
+        return dict_responses.no_scheduler(mm_username)
 
     exists_cals = await caldav_api.get_all_calendars(principal=principal)
 
@@ -226,12 +223,6 @@ async def update_notification(
         return exists_cals
 
     cals = list(_form_calendars(exists_cals))
-
-    if not cals:
-        return {
-            'type': 'error',
-            'text': 'You don\'t have a calendars with conferences'
-        }
 
     return {
         "type": "form",
@@ -331,10 +322,7 @@ async def continue_update_notification(
 
             except caldav_errs.NotFoundError as exp:
 
-                return {
-                    'type': 'error',
-                    'text': 'Calendar not found in yandex calendar server'
-                }
+                return dict_responses.calendar_not_found()
 
     sync_cals = [
         {'mm_user_id': user.mm_user_id, 'cal_id': task.result().calendar.id, 'sync_token': task.result().sync_token}
@@ -355,7 +343,7 @@ async def continue_update_notification(
     # required job1 daily notification at current clock
 
     delay = get_delay_daily(h, m)
-    tasks.task1.send_with_options(args=(mm_user_id, h, m), delay=delay)
+    asyncio.to_thread(tasks.task1.send_with_options, args=(mm_user_id, h, m), delay=delay)
 
     # job2 if e_c or ch_stat (is optional)
     # in check event
@@ -408,19 +396,13 @@ async def delete_notification(
 
     if not await YandexCalendar.get_first_cal(conn, mm_user_id):
 
-        return {
-            'type': 'ok',
-            'text': '# @%s, you don\'t have scheduler notifications' % mm_username
-        }
+        return dict_responses.no_scheduler(mm_username)
 
     else:
 
         await YandexCalendar.remove_cals(conn, mm_user_id)
 
-        return {
-            'type': 'ok',
-            'text': '# @%s, you successfully DELETE scheduler notifications' % mm_username,
-        }
+        return dict_responses.success_remove_scheduler(mm_username)
 
 
 def _form_calendars(calendars: list[Calendar]) -> Generator[dict, None, None]:

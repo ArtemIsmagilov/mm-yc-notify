@@ -206,11 +206,6 @@
   ```bash
   sudo flask init-db -c
   ```
-- создаем новый файл с переменными окружения `.test.env` (**не забудьте прописать переменные для тестирования**)
-  ```bash
-  cp ./src/.example.env ./src/.test.env
-  ```
-
 - запускаем тесты в папке `src`
   ```bash
   pytest -svv
@@ -445,6 +440,8 @@
 - Flower --broker_api https://github.com/mher/flower/issues/1036
 - rabbitmq (unacked,ready) https://stackoverflow.com/questions/31915773/rabbitmq-what-are-ready-and-unacked-types-of-messages
 - rabbitmq docker environs https://www.rabbitmq.com/configure.html#supported-environment-variables
+- asyncpg interface error https://stackoverflow.com/questions/66444620/asyncpg-cannot-perform-operation-another-operation-is-in-progress
+- best naming endpoints in restful https://blog.dreamfactory.com/best-practices-for-naming-rest-api-endpoints/
 
 ## Вопрос-ответ
 

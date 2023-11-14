@@ -27,5 +27,5 @@ async def _init_db():
 
 async def _drop_db():
     async with get_conn() as conn:
-        stmt = text('DROP TABLE user_account, yandex_calendar, yandex_conference CASCADE')
+        stmt = text('DROP TABLE IF EXISTS user_account, yandex_calendar, yandex_conference CASCADE')
         await conn.execute(stmt)

@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from ..calendars import calendar_views
 from ..decorators.account_decorators import dependency_principal, auth_required
-from ..errors import ClientError
+from .. import dict_responses
 from ..notifications import notification_views
 
 from quart import request
@@ -53,6 +53,8 @@ async def from_to(
         principal: Principal,
 ) -> dict:
     data = await request.json
+
+    mm_username = data['context']['acting_user']['username']
     dtstart, dtend = data['values']['from_date'], data['values']['to_date']
 
     try:
@@ -64,12 +66,9 @@ async def from_to(
             tzinfo=ZoneInfo(user.timezone), hour=23, minute=59, second=59
         )
 
-    except ClientError as exp:
+    except ValueError as exp:
 
-        return {
-            'type': 'error',
-            'text': f'Wrong format from date and to date: {dtstart}, {dtend}'
-        }
+        return dict_responses.wrong_format_dates_from_to(mm_username, dtstart, dtend)
 
     else:
 
@@ -89,6 +88,8 @@ async def current(
         principal: Principal,
 ) -> dict:
     data = await request.json
+
+    mm_username = data['context']['acting_user']['username']
     dt = data['values']['date']
 
     try:
@@ -96,12 +97,9 @@ async def current(
         start = datetime.strptime(dt, '%d.%m.%Y').replace(tzinfo=ZoneInfo(user.timezone))
         end = start.replace(hour=23, minute=59, second=59)
 
-    except ClientError as exp:
+    except ValueError as exp:
 
-        return {
-            'type': 'error',
-            'text': f'Wrong format date. -> {dt}'
-        }
+        return dict_responses.wrong_format_date_current(mm_username, dt)
 
     else:
 
@@ -139,11 +137,20 @@ async def daily_notification(
 async def get_all_calendars(principal: Principal) -> list[Calendar] | dict:
     result = await asyncio.to_thread(principal.calendars)
     if not result:
-        return {
-            'type': 'error',
-            'text': 'You haven\'t calendars on CalDAV server.'
-        }
+        return dict_responses.no_calendars_on_server()
     return result
+
+
+async def get_calendar_by_name(principal: Principal, name: str) -> Calendar | dict:
+    try:
+        result = await asyncio.to_thread(principal.calendar, name=name)
+    except caldav_errs.NotFoundError as exp:
+        return dict_responses.calendar_dosnt_exists()
+    return result
+
+
+async def create_calendar(principal: Principal, *args, **kwargs):
+    return await asyncio.to_thread(principal.make_calendar, *args, **kwargs)
 
 
 async def check_exist_calendars_by_cal_id(
@@ -164,17 +171,11 @@ async def check_exist_calendars_by_cal_id(
 
             except caldav_errs.NotFoundError as exp:
 
-                return {
-                    'type': 'error',
-                    'text': f'Calendar doesn\'t exist. Notification scheduler was deleted.',
-                }
+                return dict_responses.calendar_dosnt_exists()
 
     result = [task.result().calendar for task in tasks_cals]
 
     if not result:
-        return {
-            'type': 'error',
-            'text': 'You haven\'t calendars. Notification scheduler was deleted.',
-        }
+        return dict_responses.no_calendars_on_server()
 
     return result

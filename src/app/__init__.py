@@ -57,9 +57,9 @@ def create_app(test_config=None):
 
     db_CLI.init_app(app)
 
-    from .settings import envs
+    from settings import Conf
 
-    if envs.DEBUG:
+    if Conf.DEBUG:
         logging.basicConfig(level=logging.DEBUG)
 
     return app

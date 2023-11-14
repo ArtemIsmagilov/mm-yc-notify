@@ -22,7 +22,7 @@ from ..sql_app.crud import YandexConference, YandexCalendar, User
 from ..sql_app.database import get_conn
 from ..notifications.worker import *
 
-if envs.DEBUG:
+if Conf.DEBUG:
     logging.basicConfig(level=logging.DEBUG)
 
 
@@ -154,7 +154,7 @@ async def change_status_job(mm_user_id: str, expires_at: str):
                 if user.status != js_current_options:
                     await User.update_user(conn, mm_user_id, status=js_current_options)
 
-                task4.send_with_options(args=(mm_user_id, js_current_options), delay=delay)
+                asyncio.to_thread(task4.send_with_options, args=(mm_user_id, js_current_options), delay=delay)
 
                 asyncio.create_task(update_custom_status(mm_user_id, new_options))
 
@@ -165,7 +165,7 @@ async def change_status_job(mm_user_id: str, expires_at: str):
                 if user.status != js_current_options:
                     await User.update_user(conn, mm_user_id, status=js_current_options)
 
-                task4.send_with_options(args=(mm_user_id, js_current_options), delay=delay)
+                asyncio.to_thread(task4.send_with_options, args=(mm_user_id, js_current_options), delay=delay)
 
                 asyncio.create_task(update_custom_status(mm_user_id, new_options))
 
@@ -234,7 +234,7 @@ async def notify_next_conference_job(mm_user_id: str, uid: str) -> None:
                 if user.ch_stat:
                     delay = get_delay_with_dtstart(datetime.fromisoformat(conf_obj.dtstart))
 
-                    task3.send_with_options(args=(mm_user_id, conf_obj.dtend,), delay=delay)
+                    asyncio.to_thread(task3.send_with_options, args=(mm_user_id, conf_obj.dtend,), delay=delay)
 
 
 async def daily_notification_job(mm_user_id: str, hour: int, minute: int):
@@ -280,7 +280,7 @@ async def daily_notification_job(mm_user_id: str, hour: int, minute: int):
         asyncio.create_task(send_msg_client(mm_user_id, msg, props))
 
         delay = get_delay_daily(hour, minute)
-        task1.send_with_options(args=(mm_user_id, hour, minute), delay=delay)
+        asyncio.to_thread(task1.send_with_options, args=(mm_user_id, hour, minute), delay=delay)
 
 
 async def load_updated_added_deleted_events(
@@ -389,11 +389,16 @@ async def load_updated_added_deleted_events(
 
             # new conference + user e_c or ch_stat + start date > now + 15 min
 
-            # if (user.e_c or user.ch_stat) and caldav_filters.start_gt_15_min(conf.dtstart):  # production
-            if (user.e_c or user.ch_stat) and caldav_filters.start_gt_now(conf.dtstart):  # debug
-                start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(seconds=10)  # debug
-                # start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(minutes=10) # production
+            if Conf.TESTING:
+                if (user.e_c or user.ch_stat) and caldav_filters.start_gt_now(conf.dtstart):  # debug
+                    start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(seconds=10)  # debug
 
-                delay = get_delay_with_dtstart(start_job)
+                    delay = get_delay_with_dtstart(start_job)
+                    asyncio.to_thread(task2.send_with_options, args=(mm_user_id, conf.uid), delay=delay)
+            else:
+                if (user.e_c or user.ch_stat) and caldav_filters.start_gt_15_min(conf.dtstart):  # production
+                    start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(minutes=10)  # production
 
-                task2.send_with_options(args=(mm_user_id, conf.uid), delay=delay)
+                    delay = get_delay_with_dtstart(start_job)
+                    asyncio.to_thread(task2.send_with_options, args=(mm_user_id, conf.uid), delay=delay)
+

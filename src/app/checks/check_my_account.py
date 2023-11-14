@@ -1,5 +1,6 @@
 from quart import request
 
+from ..dict_responses import is_enable_integration, is_disable_integration
 from ..sql_app.database import get_conn
 from ..sql_app.crud import User
 
@@ -14,15 +15,8 @@ async def check_user() -> dict:
 
     if user:
 
-        return {
-            'type': 'ok',
-            'text': f'# @{mm_username}, your integration with Yandex Calendar is enable :)',
-        }
+        return is_enable_integration(mm_username)
 
     else:
 
-        return {
-            'type': 'ok',
-            'text': (f'# @{mm_username}, your integration with Yandex Calendar is disable :(\n'
-                     'You need complete connect to integration.'),
-        }
+        return is_disable_integration(mm_username)

@@ -1,13 +1,12 @@
-import asyncio
-
-from ..settings import envs
+from settings import Conf
 from ..decorators.account_decorators import bot_error
 
+import asyncio
 from mattermostautodriver import AsyncDriver
 
-bot = AsyncDriver(envs.MM_BOT_OPTIONS)
+bot = AsyncDriver(Conf.MM_BOT_OPTIONS)
 
-if envs.MM_APP_TOKEN:
+if Conf.MM_APP_TOKEN:
     asyncio.get_event_loop().run_until_complete(bot.login())
 
 

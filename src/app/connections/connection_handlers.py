@@ -4,6 +4,7 @@ from ..calendars.caldav_funcs import take_principal
 from ..constants import EXPAND_DICT, UTCs
 from ..converters import create_table_md, client_id_calendar
 from ..decorators.account_decorators import required_account_does_not_exist, auth_required
+from ..dict_responses import success_remove_integration, success_create_integration, success_update_integration
 from ..sql_app.database import get_conn
 from ..sql_app.crud import User, YandexCalendar
 
@@ -79,11 +80,6 @@ async def create_account(conn: AsyncConnection):
     if type(principal) is dict:
         return principal
 
-    msg = {
-        'type': 'ok',
-        'text': f'@{mm_username}, you successfully CREATE integration with yandex calendar'
-    }
-
     await User.add_user(
         conn,
         mm_user_id=mm_user_id,
@@ -94,7 +90,7 @@ async def create_account(conn: AsyncConnection):
         ch_stat=False,
     )
 
-    return msg
+    return success_create_integration(mm_username)
 
 
 async def really_update_account():
@@ -190,14 +186,7 @@ async def update_account(conn: AsyncConnection, user: Row) -> dict:
             conn, mm_user_id, login=login, token=token, timezone=timezone, e_c=False, ch_stat=False
         ))
 
-    text = (f'@{mm_username}, you successfully UPDATE integration with yandex calendar. '
-            'Your scheduler notifications was deleted if is existed')
-    msg = {
-        'type': 'ok',
-        'text': text,
-    }
-
-    return msg
+    return success_update_integration(mm_username)
 
 
 async def really_delete_account():
@@ -224,14 +213,6 @@ async def delete_account(conn: AsyncConnection, user: Row) -> dict:
     mm_user_id = data['context']['acting_user']['id']
     mm_username = data['context']['acting_user']['username']
 
-    text = (f'@{mm_username}, you successfully REMOVE integration with yandex calendar. '
-            'Your scheduler notifications was deleted if is existed.')
-
-    msg = {
-        'type': 'ok',
-        'text': text,
-    }
-
     await User.remove_user(conn, mm_user_id)
 
-    return msg
+    return success_remove_integration(mm_username)

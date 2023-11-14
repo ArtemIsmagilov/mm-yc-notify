@@ -37,7 +37,7 @@ class User:
     async def get_user(cls, conn: AsyncConnection, mm_user_id: str) -> Row:
         result = await conn.execute(
             select(
-                user_account_table.c['mm_user_id', 'login', 'token', 'token', 'timezone', 'e_c', 'ch_stat', 'status'])
+                user_account_table.c['mm_user_id', 'login', 'token', 'timezone', 'e_c', 'ch_stat', 'status'])
             .where(user_account_table.c.mm_user_id == mm_user_id)
         )
         return result.first()
@@ -73,7 +73,7 @@ class User:
 class YandexCalendar:
 
     @classmethod
-    async def add_one_cal(cls, conn: AsyncConnection, mm_user_id: str, cal_id: str, sync_token: str):
+    async def add_one_cal(cls, conn: AsyncConnection, mm_user_id: str, cal_id: str, sync_token: str | None = None):
         await conn.execute(
             yandex_calendar_table
             .insert()

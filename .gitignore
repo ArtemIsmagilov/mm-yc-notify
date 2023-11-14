@@ -1,8 +1,6 @@
 .env
-.test.env
 celerybeat-schedule
 celery.log
-my_test.py
 
 postgres/
 .idea
