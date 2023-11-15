@@ -135,3 +135,4 @@ def no_calendars_on_server():
         'type': 'error',
         'text': 'You haven\'t calendars on CalDAV server.'
     }
+

@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from ..calendars import calendar_views
@@ -6,13 +8,15 @@ from .. import dict_responses
 from ..notifications import notification_views
 
 from quart import request
-from caldav import Principal, Calendar
+from caldav import Principal, Calendar, SynchronizableCalendarObjectCollection as SyncCal
 import caldav.lib.error as caldav_errs
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from sqlalchemy.engine import Row
 import asyncio
 from typing import AsyncGenerator
+
+from ..sql_app.crud import YandexCalendar
 
 
 @auth_required
@@ -154,28 +158,31 @@ async def create_calendar(principal: Principal, *args, **kwargs):
 
 
 async def check_exist_calendars_by_cal_id(
+        conn: AsyncConnection,
         principal: Principal,
         cals: AsyncGenerator[Row, None],
-) -> list[Calendar] | dict:
-    tasks_cals_generator = [
-        asyncio.create_task(asyncio.to_thread(principal.calendar, cal_id=c.cal_id)) async for c in cals
-    ]
+) -> set[Calendar] | dict:
+    background_tasks = set()
 
-    async with asyncio.TaskGroup() as tg:
-        tasks_cals = set()
-        for task in asyncio.as_completed(tasks_cals_generator):
-            cal = await task
-            try:
+    async for c in cals:
+        background_tasks.add(asyncio.create_task(asyncio.to_thread(principal.calendar, cal_id=c.cal_id)))
 
-                tasks_cals.add(tg.create_task(asyncio.to_thread(cal.objects_by_sync_token)))
+    cals_set = set()
+    for task in asyncio.as_completed(background_tasks):
+        cal = await task
 
-            except caldav_errs.NotFoundError as exp:
+        try:
 
-                return dict_responses.calendar_dosnt_exists()
+            await asyncio.to_thread(cal.objects_by_sync_token)
 
-    result = [task.result().calendar for task in tasks_cals]
+        except caldav_errs.NotFoundError as exp:
 
-    if not result:
+            await YandexCalendar.remove_cal(conn, cal.id)
+
+        else:
+            cals_set.add(cal)
+
+    if not cals_set:
         return dict_responses.no_calendars_on_server()
 
-    return result
+    return cals_set

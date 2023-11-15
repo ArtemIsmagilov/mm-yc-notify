@@ -1,14 +1,15 @@
 import asyncio, pytest
-
 from caldav import Principal
 from dramatiq import Worker
 from httpx import HTTPError
 
-import settings
 from app.bots.bot_commands import get_user_by_username, create_user
 from app.calendars import caldav_api
 from app.calendars.caldav_funcs import take_principal
 from app.notifications.tasks import broker
+import settings
+from app.sql_app.crud import User
+from app.sql_app.database import get_conn
 
 # init testing environments
 settings.Conf = settings.Testing
@@ -18,6 +19,7 @@ from app import create_app
 
 async def init_scope():
     global test_user, mm_user_id, test_principal, test_calendar1, test_calendar2
+
     # create test user, if it doesn't exist
     test_user = await get_user_by_username(username=Conf.test_client_username)
 
@@ -68,8 +70,9 @@ def runner(app):
 
 @pytest.fixture  # (scope="session")
 def stub_broker():
-    broker.flush_all()
-    return broker
+    broker.flush('default.DQ')
+    yield broker
+    broker.flush('default.DQ')
 
 
 @pytest.fixture  # (scope="session")

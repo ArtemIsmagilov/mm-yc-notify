@@ -12,5 +12,5 @@ async def start_scheduler():
         await scheduler.add_schedule(task0, IntervalTrigger(seconds=Conf.CHECK_EVENTS))
         await scheduler.run_until_stopped()
 
-# if __name__ == '__main__':
-#     asyncio.run(start_scheduler())
+if __name__ == '__main__':
+    asyncio.run(start_scheduler())

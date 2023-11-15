@@ -162,7 +162,7 @@ async def continue_create_notification(
     # required job1 daily notification at current clock
 
     delay = get_delay_daily(h, m)
-    asyncio.to_thread(tasks.task1.send_with_options, args=(mm_user_id, h, m), delay=delay)
+    tasks.task1.send_with_options(args=(mm_user_id, h, m), delay=delay)
 
     # job2 if e_c or ch_stat (is optional)
     # in check event
@@ -343,7 +343,7 @@ async def continue_update_notification(
     # required job1 daily notification at current clock
 
     delay = get_delay_daily(h, m)
-    asyncio.to_thread(tasks.task1.send_with_options, args=(mm_user_id, h, m), delay=delay)
+    tasks.task1.send_with_options(args=(mm_user_id, h, m), delay=delay)
 
     # job2 if e_c or ch_stat (is optional)
     # in check event

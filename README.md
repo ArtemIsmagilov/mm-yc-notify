@@ -196,7 +196,7 @@
       ```bash
       cd ../
       flask init-db
-      bash run_app.sh
+      bash run-app.bash
       ```
 
 ## Тесты
@@ -472,11 +472,10 @@
                         List of relations
            Schema |       Name        | Type  |  Owner   
           --------+-------------------+-------+----------
-           public | apscheduler_jobs  | table | postgres
            public | user_account      | table | postgres
            public | yandex_calendar   | table | postgres
            public | yandex_conference | table | postgres
-          (4 rows)
+          (3 rows)
 
         ```bash
         SELECT id, token FROM user_account;

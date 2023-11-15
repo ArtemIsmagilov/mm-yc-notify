@@ -24,12 +24,13 @@ async def decrease_user():
         await User.remove_user(conn, mm_user_id)
 
 
-async def increase_calendar():
+async def increase_calendar(cal_id: str):
     async with get_conn() as conn:
         await YandexCalendar.add_one_cal(
             conn,
             mm_user_id,
-            'test_cal_id'
+            cal_id,
+            cal_id + 'fake_sync_token'
         )
 
 

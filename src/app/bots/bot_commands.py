@@ -7,7 +7,10 @@ from mattermostautodriver import AsyncDriver
 bot = AsyncDriver(Conf.MM_BOT_OPTIONS)
 
 if Conf.MM_APP_TOKEN:
-    asyncio.get_event_loop().run_until_complete(bot.login())
+    if asyncio.get_event_loop().is_running():
+        asyncio.create_task(bot.login())
+    else:
+        asyncio.get_event_loop().run_until_complete(bot.login())
 
 
 @bot_error

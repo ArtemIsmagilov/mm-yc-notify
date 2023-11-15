@@ -1,6 +1,4 @@
-import asyncio
-import json
-import logging
+import asyncio, json, logging
 from datetime import timedelta, datetime
 from dramatiq import actor
 import caldav.lib.error as caldav_errors
@@ -56,7 +54,7 @@ async def task3(mm_user_id: str, expires_at: str):
     await change_status_job(mm_user_id, expires_at)
 
 
-@actor(max_retries=3)
+@actor(max_retries=1)
 # task-return-status
 async def task4(mm_user_id: str, latest_custom_status: str):
     """return_latest_custom_status_job"""
@@ -154,7 +152,7 @@ async def change_status_job(mm_user_id: str, expires_at: str):
                 if user.status != js_current_options:
                     await User.update_user(conn, mm_user_id, status=js_current_options)
 
-                asyncio.to_thread(task4.send_with_options, args=(mm_user_id, js_current_options), delay=delay)
+                task4.send_with_options(args=(mm_user_id, js_current_options), delay=delay)
 
                 asyncio.create_task(update_custom_status(mm_user_id, new_options))
 
@@ -165,7 +163,7 @@ async def change_status_job(mm_user_id: str, expires_at: str):
                 if user.status != js_current_options:
                     await User.update_user(conn, mm_user_id, status=js_current_options)
 
-                asyncio.to_thread(task4.send_with_options, args=(mm_user_id, js_current_options), delay=delay)
+                task4.send_with_options(args=(mm_user_id, js_current_options), delay=delay)
 
                 asyncio.create_task(update_custom_status(mm_user_id, new_options))
 
@@ -234,7 +232,7 @@ async def notify_next_conference_job(mm_user_id: str, uid: str) -> None:
                 if user.ch_stat:
                     delay = get_delay_with_dtstart(datetime.fromisoformat(conf_obj.dtstart))
 
-                    asyncio.to_thread(task3.send_with_options, args=(mm_user_id, conf_obj.dtend,), delay=delay)
+                    task3.send_with_options(args=(mm_user_id, conf_obj.dtend,), delay=delay)
 
 
 async def daily_notification_job(mm_user_id: str, hour: int, minute: int):
@@ -249,20 +247,19 @@ async def daily_notification_job(mm_user_id: str, hour: int, minute: int):
         if type(principal) is dict:
             await User.remove_user(conn, mm_user_id)
             asyncio.create_task(send_msg_client(mm_user_id, principal.get('text')))
-
             return
 
-        exists_cals = await caldav_api.check_exist_calendars_by_cal_id(
-            principal, YandexCalendar.get_cals(conn, mm_user_id)
+        if not await YandexCalendar.get_first_cal(conn, mm_user_id):
+            return
+
+        exists_db_server_cals = await caldav_api.check_exist_calendars_by_cal_id(
+            conn, principal, YandexCalendar.get_cals(conn, mm_user_id)
         )
 
-        if type(exists_cals) is dict:
-            await YandexCalendar.remove_cals(conn, mm_user_id)
-            asyncio.create_task(send_msg_client(mm_user_id, exists_cals.get('text')))
-
+        if type(exists_db_server_cals) is dict:
             return
 
-        body_conferences = await caldav_api.daily_notification(principal, user, exists_cals)
+        body_conferences = await caldav_api.daily_notification(principal, user, exists_db_server_cals)
 
         msg = '# Hi, I sent you a list of the conferences for today'
         props = {
@@ -280,7 +277,7 @@ async def daily_notification_job(mm_user_id: str, hour: int, minute: int):
         asyncio.create_task(send_msg_client(mm_user_id, msg, props))
 
         delay = get_delay_daily(hour, minute)
-        asyncio.to_thread(task1.send_with_options, args=(mm_user_id, hour, minute), delay=delay)
+        task1.send_with_options(args=(mm_user_id, hour, minute), delay=delay)
 
 
 async def load_updated_added_deleted_events(
@@ -394,11 +391,11 @@ async def load_updated_added_deleted_events(
                     start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(seconds=10)  # debug
 
                     delay = get_delay_with_dtstart(start_job)
-                    asyncio.to_thread(task2.send_with_options, args=(mm_user_id, conf.uid), delay=delay)
+                    task2.send_with_options(args=(mm_user_id, conf.uid), delay=delay)
             else:
                 if (user.e_c or user.ch_stat) and caldav_filters.start_gt_15_min(conf.dtstart):  # production
                     start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(minutes=10)  # production
 
                     delay = get_delay_with_dtstart(start_job)
-                    asyncio.to_thread(task2.send_with_options, args=(mm_user_id, conf.uid), delay=delay)
+                    task2.send_with_options(args=(mm_user_id, conf.uid), delay=delay)
 

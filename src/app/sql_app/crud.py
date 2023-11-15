@@ -61,6 +61,13 @@ class User:
         )
 
     @classmethod
+    async def remove_all_users(cls, conn: AsyncConnection):
+        await conn.execute(
+            user_account_table
+            .delete()
+        )
+
+    @classmethod
     async def update_user(cls, conn: AsyncConnection, mm_user_id: str, **kwargs):
         await conn.execute(
             user_account_table
@@ -73,7 +80,7 @@ class User:
 class YandexCalendar:
 
     @classmethod
-    async def add_one_cal(cls, conn: AsyncConnection, mm_user_id: str, cal_id: str, sync_token: str | None = None):
+    async def add_one_cal(cls, conn: AsyncConnection, mm_user_id: str, cal_id: str, sync_token: str):
         await conn.execute(
             yandex_calendar_table
             .insert()
@@ -87,7 +94,6 @@ class YandexCalendar:
             .insert()
             .values(cals)
         )
-
 
     @classmethod
     async def get_cal(cls, conn: AsyncConnection, cal_id: str) -> Row:

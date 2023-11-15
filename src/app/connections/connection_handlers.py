@@ -46,14 +46,13 @@ async def profile():
 
             if await YandexCalendar.get_first_cal(conn, mm_user_id):
                 cals = await caldav_api.check_exist_calendars_by_cal_id(
-                    principal, YandexCalendar.get_cals(conn, mm_user_id)
+                    conn, principal, YandexCalendar.get_cals(conn, mm_user_id)
                 )
 
                 if type(cals) is dict:
-                    await YandexCalendar.remove_cals(conn, mm_user_id)
                     return cals
 
-                account.update(sync_calendars=', '.join(client_id_calendar(c) for c in cals))
+                account.update(sync_calendars=', '.join(client_id_calendar(c) for c in cals or 'None'))
 
     text = create_table_md(account)
 
