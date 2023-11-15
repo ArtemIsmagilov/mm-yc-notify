@@ -178,7 +178,7 @@ async def update_account(conn: AsyncConnection, user: Row) -> dict:
 
     async with asyncio.TaskGroup() as tg:
         tg.create_task(YandexCalendar.remove_cals(
-            conn, mm_user_id=mm_user_id
+            conn, mm_user_id
         ))
 
         tg.create_task(User.update_user(

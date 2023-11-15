@@ -9,13 +9,15 @@ from ..sql_app.crud import YandexCalendar
 
 
 @auth_required
-async def check_scheduler(conn: AsyncConnection, user: Row) -> dict:
+async def check_scheduler(
+        conn: AsyncConnection,
+        user: Row
+) -> dict:
     data = await request.json
     mm_user_id = data['context']['acting_user']['id']
     mm_username = data['context']['acting_user']['username']
 
-    async with get_conn() as conn:
-        first_cal = await YandexCalendar.get_first_cal(conn, mm_user_id)
+    first_cal = await YandexCalendar.get_first_cal(conn, mm_user_id)
 
     if first_cal:
 

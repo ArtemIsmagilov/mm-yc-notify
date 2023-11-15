@@ -1,4 +1,5 @@
 from .. import dict_responses
+from ..calendars.caldav_api import get_calendar_by_cal_id
 from ..notifications import tasks
 from ..app_handlers import static_file
 from ..calendars import caldav_api
@@ -123,41 +124,35 @@ async def continue_create_notification(
 
     h, m = get_h_m_utc(daily_clock, user.timezone)
 
-    tasks_cals_generator = (
-        asyncio.create_task(asyncio.to_thread(principal.calendar, cal_id=c['value'])) for c in cals_form
+    result_cals_cal_id = await asyncio.gather(
+        *(get_calendar_by_cal_id(principal, cal_id=c['value']) for c in cals_form)
     )
 
-    async with asyncio.TaskGroup() as tg:
+    try:
+        result_sync_cals = await asyncio.gather(
+            *(asyncio.to_thread(result_cal.objects_by_sync_token, load_objects=True)
+              for result_cal in result_cals_cal_id)
+            , return_exceptions=True
+        )
+    except caldav_errs.NotFoundError as exp:
 
-        tasks_sync_cals = set()
+        return dict_responses.calendar_not_found()
 
-        for task in asyncio.as_completed(tasks_cals_generator):
-
-            cal = await task
-
-            try:
-
-                tasks_sync_cals.add(tg.create_task(asyncio.to_thread(cal.objects_by_sync_token, load_objects=True)))
-
-            except caldav_errs.NotFoundError as exp:
-
-                return dict_responses.calendar_not_found()
-
-    sync_cals = [
-        {'mm_user_id': user.mm_user_id, 'cal_id': task.result().calendar.id, 'sync_token': task.result().sync_token}
-        for task in tasks_sync_cals
+    sync_cals_in_db = [
+        {'mm_user_id': user.mm_user_id, 'cal_id': sync_cal.calendar.id, 'sync_token': sync_cal.sync_token}
+        for sync_cal in result_sync_cals
     ]
 
     async with asyncio.TaskGroup() as tg:
 
         tg.create_task(User.update_user(conn, user.mm_user_id, e_c=e_c, ch_stat=ch_stat))
 
-        tg.create_task(YandexCalendar.add_many_cals(conn, sync_cals))
+        tg.create_task(YandexCalendar.add_many_cals(conn, sync_cals_in_db))
 
     async with asyncio.TaskGroup() as tg:
 
-        for task in tasks_sync_cals:
-            tg.create_task(tasks.load_updated_added_deleted_events(conn, user, task.result(), notify=False))
+        for sync_cal in result_sync_cals:
+            tg.create_task(tasks.load_updated_added_deleted_events(conn, user, sync_cal, notify=False))
 
     # required job1 daily notification at current clock
 
@@ -302,43 +297,42 @@ async def continue_update_notification(
     e_c = values['Notification']
     ch_stat = values['Status']
 
+    first_cal = await YandexCalendar.get_first_cal(conn, mm_user_id)
+
+    if first_cal:
+        return dict_responses.is_exists_scheduler(mm_username)
+
     h, m = get_h_m_utc(daily_clock, user.timezone)
 
-    tasks_cals_generator = (
-        asyncio.create_task(asyncio.to_thread(principal.calendar, cal_id=c['value'])) for c in cals_form
+    result_cals_cal_id = await asyncio.gather(
+        *(get_calendar_by_cal_id(principal, cal_id=c['value']) for c in cals_form)
     )
 
-    async with asyncio.TaskGroup() as tg:
+    try:
+        result_sync_cals = await asyncio.gather(
+            *(asyncio.to_thread(result_cal.objects_by_sync_token, load_objects=True)
+              for result_cal in result_cals_cal_id)
+            , return_exceptions=True
+        )
+    except caldav_errs.NotFoundError as exp:
 
-        tasks_sync_cals = set()
+        return dict_responses.calendar_not_found()
 
-        for task in asyncio.as_completed(tasks_cals_generator):
-
-            cal = await task
-
-            try:
-
-                tasks_sync_cals.add(tg.create_task(asyncio.to_thread(cal.objects_by_sync_token, load_objects=True)))
-
-            except caldav_errs.NotFoundError as exp:
-
-                return dict_responses.calendar_not_found()
-
-    sync_cals = [
-        {'mm_user_id': user.mm_user_id, 'cal_id': task.result().calendar.id, 'sync_token': task.result().sync_token}
-        for task in tasks_sync_cals
+    sync_cals_in_db = [
+        {'mm_user_id': user.mm_user_id, 'cal_id': sync_cal.calendar.id, 'sync_token': sync_cal.sync_token}
+        for sync_cal in result_sync_cals
     ]
 
     async with asyncio.TaskGroup() as tg:
 
         tg.create_task(User.update_user(conn, user.mm_user_id, e_c=e_c, ch_stat=ch_stat))
 
-        tg.create_task(YandexCalendar.add_many_cals(conn, sync_cals))
+        tg.create_task(YandexCalendar.add_many_cals(conn, sync_cals_in_db))
 
     async with asyncio.TaskGroup() as tg:
 
-        for task in tasks_sync_cals:
-            tg.create_task(tasks.load_updated_added_deleted_events(conn, user, task.result(), notify=False))
+        for sync_cal in result_sync_cals:
+            tg.create_task(tasks.load_updated_added_deleted_events(conn, user, sync_cal, notify=False))
 
     # required job1 daily notification at current clock
 

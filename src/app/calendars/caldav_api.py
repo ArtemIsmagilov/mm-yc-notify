@@ -1,5 +1,3 @@
-import logging
-
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from ..calendars import calendar_views
@@ -138,25 +136,6 @@ async def daily_notification(
     return await notification_views.daily_notify_view(exist_calendars, 'get_daily.md', (start, end))
 
 
-async def get_all_calendars(principal: Principal) -> list[Calendar] | dict:
-    result = await asyncio.to_thread(principal.calendars)
-    if not result:
-        return dict_responses.no_calendars_on_server()
-    return result
-
-
-async def get_calendar_by_name(principal: Principal, name: str) -> Calendar | dict:
-    try:
-        result = await asyncio.to_thread(principal.calendar, name=name)
-    except caldav_errs.NotFoundError as exp:
-        return dict_responses.calendar_dosnt_exists()
-    return result
-
-
-async def create_calendar(principal: Principal, *args, **kwargs):
-    return await asyncio.to_thread(principal.make_calendar, *args, **kwargs)
-
-
 async def check_exist_calendars_by_cal_id(
         conn: AsyncConnection,
         principal: Principal,
@@ -165,7 +144,7 @@ async def check_exist_calendars_by_cal_id(
     background_tasks = set()
 
     async for c in cals:
-        background_tasks.add(asyncio.create_task(asyncio.to_thread(principal.calendar, cal_id=c.cal_id)))
+        background_tasks.add(asyncio.create_task(get_calendar_by_cal_id(principal, cal_id=c.cal_id)))
 
     cals_set = set()
     for task in asyncio.as_completed(background_tasks):
@@ -186,3 +165,26 @@ async def check_exist_calendars_by_cal_id(
         return dict_responses.no_calendars_on_server()
 
     return cals_set
+
+
+async def get_all_calendars(principal: Principal) -> list[Calendar] | dict:
+    result = await asyncio.to_thread(principal.calendars)
+    if not result:
+        return dict_responses.no_calendars_on_server()
+    return result
+
+
+async def get_calendar_by_name(principal: Principal, name: str) -> Calendar | dict:
+    try:
+        result = await asyncio.to_thread(principal.calendar, name=name)
+    except caldav_errs.NotFoundError as exp:
+        return dict_responses.calendar_dosnt_exists()
+    return result
+
+
+async def get_calendar_by_cal_id(principal: Principal, cal_id: str) -> Calendar | dict:
+    return await asyncio.to_thread(principal.calendar, cal_id=cal_id)
+
+
+async def create_calendar(principal: Principal, *args, **kwargs) -> Calendar:
+    return await asyncio.to_thread(principal.make_calendar, *args, **kwargs)

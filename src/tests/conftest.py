@@ -71,8 +71,7 @@ def runner(app):
 @pytest.fixture  # (scope="session")
 def stub_broker():
     broker.flush('default.DQ')
-    yield broker
-    broker.flush('default.DQ')
+    return broker
 
 
 @pytest.fixture  # (scope="session")

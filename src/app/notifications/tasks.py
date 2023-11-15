@@ -47,7 +47,6 @@ async def task2(mm_user_id: str, uid: str):
 
 
 @actor(max_retries=1)
-# task-return-status
 async def task3(mm_user_id: str, expires_at: str):
     """change_status_job"""
     logging.debug('change_status_job(%s, %s)', mm_user_id, expires_at)
@@ -55,7 +54,6 @@ async def task3(mm_user_id: str, expires_at: str):
 
 
 @actor(max_retries=1)
-# task-return-status
 async def task4(mm_user_id: str, latest_custom_status: str):
     """return_latest_custom_status_job"""
     logging.debug('return_latest_custom_status_job(%s, %s)', mm_user_id, latest_custom_status)
@@ -63,7 +61,7 @@ async def task4(mm_user_id: str, latest_custom_status: str):
 
 
 async def _load_changes_events(conn: AsyncConnection, principal: Principal, user: Row, get_user_cal: Row):
-    not_sync_cal = await asyncio.to_thread(principal.calendar, cal_id=get_user_cal.cal_id)
+    not_sync_cal = await caldav_api.get_calendar_by_cal_id(principal, cal_id=get_user_cal.cal_id)
 
     # get sync_token from db
 
@@ -190,7 +188,7 @@ async def notify_next_conference_job(mm_user_id: str, uid: str) -> None:
         if not user_conf:
             return
 
-        cal = principal.calendar(cal_id=user_conf.cal_id)
+        cal = await caldav_api.get_calendar_by_cal_id(principal, cal_id=user_conf.cal_id)
 
         try:
 

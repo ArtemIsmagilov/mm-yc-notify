@@ -1137,6 +1137,8 @@ class TestTasks:
 
         await tasks.daily_notification_job(mm_user_id, *get_h_m_utc("7:00", Conf.test_client_ya_timezone))
 
+        await decrease_user()
+
         for m in stub_broker.consume('default.DQ', timeout=0):
             message_dict = m.asdict()
             eta = datetime.fromtimestamp(message_dict['options']['eta'] // 1000, tz=UTC)
@@ -1146,4 +1148,4 @@ class TestTasks:
 
             break
 
-        await decrease_user()
+
