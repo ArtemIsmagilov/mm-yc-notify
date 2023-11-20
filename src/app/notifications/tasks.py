@@ -101,7 +101,10 @@ async def return_latest_custom_status_job(mm_user_id: str, latest_custom_status:
     async with get_conn() as conn:
         user = await User.get_user(conn, mm_user_id)
 
-        if user.status != latest_custom_status:
+        if not user:
+            return
+
+        elif user.status != latest_custom_status:
             return
 
         else:
@@ -117,6 +120,9 @@ async def change_status_job(mm_user_id: str, expires_at: str):
 
     async with get_conn() as conn:
         user = await User.get_user(conn, mm_user_id)
+
+        if not user:
+            return
 
         mm_user = await get_user_by_mm_user_id(mm_user_id)
 

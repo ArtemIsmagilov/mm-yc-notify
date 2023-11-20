@@ -1,0 +1,15 @@
+version: '3.9'
+
+services:
+
+  app:
+
+    image: "python:slim"
+    working_dir: "/app"
+    volumes:
+      - "../:/app"
+    command: >
+      bash -c "pip install -r requirements.txt
+      && bash run-server.bash
+      "
+    network_mode: "host"

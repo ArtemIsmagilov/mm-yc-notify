@@ -34,9 +34,9 @@ async def increase_calendar(cal_id: str):
         )
 
 
-async def decrease_calendar():
+async def decrease_calendar(cal_id: str):
     async with get_conn() as conn:
-        await YandexCalendar.remove_cal(conn, 'test_cal_id')
+        await YandexCalendar.remove_cal(conn, cal_id)
 
 
 async def modify_account(**kwargs):

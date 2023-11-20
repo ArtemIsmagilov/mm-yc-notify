@@ -8,8 +8,6 @@ from app.calendars import caldav_api
 from app.calendars.caldav_funcs import take_principal
 from app.notifications.tasks import broker
 import settings
-from app.sql_app.crud import User
-from app.sql_app.database import get_conn
 
 # init testing environments
 settings.Conf = settings.Testing

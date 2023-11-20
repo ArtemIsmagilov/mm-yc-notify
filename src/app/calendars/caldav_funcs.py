@@ -5,7 +5,7 @@ import caldav.lib.error as caldav_errors
 from ..dict_responses import incorrect_principal, dav_error
 
 
-async def take_principal(login, token) -> Principal | dict:
+async def take_principal(login: str, token: str) -> Principal | dict:
     url = f'https://{login}:{token}@caldav.yandex.ru'
 
     try:
