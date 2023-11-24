@@ -1,9 +1,9 @@
-from . import backgrounds
+from . import notification_backgrounds
 from .. import dict_responses
 from ..app_handlers import static_file
 from ..calendars import caldav_api
 from ..constants import EXPAND_DICT, TIMEs
-from ..converters import  client_id_calendar
+from ..converters import client_id_calendar
 from ..decorators.account_decorators import dependency_principal, auth_required
 from ..sql_app.crud import YandexCalendar
 
@@ -27,9 +27,7 @@ async def create_notification(
     acting_user = context['acting_user']
     mm_user_id, mm_username = acting_user['id'], acting_user['username']
 
-    first_cal = await YandexCalendar.get_first_cal(conn, mm_user_id)
-
-    if first_cal:
+    if await YandexCalendar.get_first_cal(conn, mm_user_id):
         return dict_responses.is_exists_scheduler(mm_username)
 
     exists_cals = await caldav_api.get_all_calendars(principal=principal)
@@ -115,13 +113,11 @@ async def continue_create_notification(
     e_c = values['Notification']
     ch_stat = values['Status']
 
-    first_cal = await YandexCalendar.get_first_cal(conn, mm_user_id)
-
-    if first_cal:
+    if await YandexCalendar.get_first_cal(conn, mm_user_id):
         return dict_responses.is_exists_scheduler(mm_username)
 
     asyncio.create_task(
-        backgrounds.bg_continue_create_notification(user, principal, cals_form, daily_clock, e_c, ch_stat)
+        notification_backgrounds.bg_continue_create_notification(user, principal, cals_form, daily_clock, e_c, ch_stat)
     )
 
     return {
@@ -256,13 +252,11 @@ async def continue_update_notification(
     e_c = values['Notification']
     ch_stat = values['Status']
 
-    first_cal = await YandexCalendar.get_first_cal(conn, mm_user_id)
-
-    if first_cal:
+    if await YandexCalendar.get_first_cal(conn, mm_user_id):
         return dict_responses.is_exists_scheduler(mm_username)
 
     asyncio.create_task(
-        backgrounds.bg_continue_create_notification(user, principal, cals_form, daily_clock, e_c, ch_stat)
+        notification_backgrounds.bg_continue_create_notification(user, principal, cals_form, daily_clock, e_c, ch_stat)
     )
 
     return {
@@ -313,8 +307,7 @@ async def delete_notification(
         return dict_responses.no_scheduler(mm_username)
 
     else:
-
-        await YandexCalendar.remove_cals(conn, mm_user_id)
+        asyncio.create_task(notification_backgrounds.bg_remove_notification(mm_user_id))
 
         return dict_responses.success_remove_scheduler(mm_username)
 

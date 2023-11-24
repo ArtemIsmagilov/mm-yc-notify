@@ -4,7 +4,7 @@ from datetime import datetime
 from quart import render_template
 
 
-async def base_view(calendars: list | dict, template: str, dates: tuple[datetime, datetime]) -> dict:
+async def base_view(calendars: tuple | dict, template: str, dates: tuple[datetime, datetime]) -> dict:
     if type(calendars) is dict:
         return calendars
 

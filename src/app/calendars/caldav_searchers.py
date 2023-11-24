@@ -7,7 +7,7 @@ from typing import AsyncGenerator
 
 
 async def find_conferences_in_some_cals(
-        calendars: list[Calendar],
+        calendars: list[Calendar] | tuple[Calendar],
         dates: tuple[datetime, datetime],
 ) -> AsyncGenerator[list[Conference], None]:
     tasks_generator = (asyncio.create_task(find_conferences_in_one_cal(cal, dates)) for cal in calendars)

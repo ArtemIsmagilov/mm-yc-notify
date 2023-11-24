@@ -16,9 +16,7 @@ async def check_scheduler(
     mm_user_id = data['context']['acting_user']['id']
     mm_username = data['context']['acting_user']['username']
 
-    first_cal = await YandexCalendar.get_first_cal(conn, mm_user_id)
-
-    if first_cal:
+    if await YandexCalendar.get_first_cal(conn, mm_user_id):
 
         return is_enable_scheduler(mm_username)
 

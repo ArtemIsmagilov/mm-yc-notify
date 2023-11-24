@@ -14,14 +14,25 @@ if Conf.MM_APP_TOKEN:
 
 
 @bot_error
-async def send_msg_client(mm_user_id, msg, props=None):
+async def send_msg_client(mm_user_id: str, msg: str, props=None):
     bot_create_direct_channel = await bot.channels.create_direct_channel([mm_user_id, bot.client.userid])
-    data = {"channel_id": bot_create_direct_channel["id"], "message": msg, }
+    data = {"channel_id": bot_create_direct_channel["id"], "message": msg}
 
     if props:
         data.update({"props": props, })
 
     return await bot.posts.create_post(data)
+
+
+@bot_error
+async def send_ephemeral_msg_client(mm_user_id: str, msg: str, props=None):
+    bot_create_direct_channel = await bot.channels.create_direct_channel([mm_user_id, bot.client.userid])
+    data = {"user_id": mm_user_id, "post": {"channel_id": bot_create_direct_channel["id"], "message": msg}}
+
+    if props:
+        data.update({"props": props, })
+
+    return await bot.posts.create_post_ephemeral(data)
 
 
 @bot_error

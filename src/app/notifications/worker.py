@@ -13,6 +13,9 @@ def remove_prometheus(b: RabbitmqBroker):
 
 
 broker = RabbitmqBroker(url=Conf.BROKER)
+
 remove_prometheus(broker)
+
 broker.add_middleware(AsyncIO())
+
 dramatiq.set_broker(broker)

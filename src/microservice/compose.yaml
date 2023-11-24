@@ -4,27 +4,29 @@ services:
 
   db:
     image: "postgres:alpine"
-    restart: "unless-stopped"
+    #restart: "unless-stopped"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: example
       POSTGRES_DB: postgres
+#    ports:
+#      - 5432:5432
 
-  adminer:
-    image: adminer
-    ports:
-      - 8080:8080
-    restart: "unless-stopped"
+#  adminer:
+#    image: adminer
+#    ports:
+#      - 8080:8080
+#    restart: "unless-stopped"
 
 
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
     hostname: 'my-rabbit'
-    restart: "unless-stopped"
-    ports:
-      - 5672:5672
-      - 15672:15672
+    #restart: "unless-stopped"
+#    ports:
+#      - 5672:5672
+#      - 15672:15672
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
@@ -32,7 +34,6 @@ services:
       - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit disk_free_limit 1147483648
 
   app:
-
     image: "python"
     working_dir: "/app"
     volumes:
@@ -50,4 +51,4 @@ services:
 
     ports:
       - 8090:8090
-    restart: "unless-stopped"
+    #restart: "unless-stopped"

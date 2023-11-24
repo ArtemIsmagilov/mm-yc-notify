@@ -136,3 +136,9 @@ def no_calendars_on_server():
         'text': 'You haven\'t calendars on CalDAV server.'
     }
 
+
+def success_ok(mm_username: str):
+    return {
+        'type': 'ok',
+        'text': '# Ok, @%s.' % mm_username
+    }

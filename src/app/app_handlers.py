@@ -328,7 +328,7 @@ def manifest() -> dict:
     return {
         'app_id': 'yandex-calendar',
         'homepage_url': 'https://github.com/ArtemIsmagilov/mm-yc-notify',
-        'version': 'v1.0.2',
+        'version': 'v1.0.3',
         'display_name': 'Yandex Calendar',
         'description': 'Integration your yandex calendar with Mattermost server on protocol CalDAV',
         'icon': 'cal.png',

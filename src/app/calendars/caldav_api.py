@@ -1,8 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncConnection
-
-from ..calendars import calendar_views
+from ..bots.bot_commands import send_msg_client, send_ephemeral_msg_client
+from . import calendar_views
 from ..decorators.account_decorators import dependency_principal, auth_required
 from .. import dict_responses
+from ..dict_responses import success_ok
 from ..notifications import notification_views
 
 from quart import request
@@ -24,12 +25,14 @@ async def get_a_week(
         user: Row,
         principal: Principal,
 ) -> dict:
+    data = await request.json
+    mm_username = data['context']['acting_user']['username']
     start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
     end = start + timedelta(days=7)
 
-    cals = await get_all_calendars(principal)
+    asyncio.create_task(run_in_background(user.mm_user_id, principal, start, end))
 
-    return await calendar_views.base_view(cals, 'get_all.md', (start, end))
+    return success_ok(mm_username)
 
 
 @auth_required
@@ -39,12 +42,14 @@ async def get_a_month(
         user: Row,
         principal: Principal,
 ) -> dict:
+    data = await request.json
+    mm_username = data['context']['acting_user']['username']
     start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
     end = start + timedelta(days=30)
 
-    cals = await get_all_calendars(principal)
+    asyncio.create_task(run_in_background(user.mm_user_id, principal, start, end))
 
-    return await calendar_views.base_view(cals, 'get_all.md', (start, end))
+    return success_ok(mm_username)
 
 
 @auth_required
@@ -77,9 +82,9 @@ async def from_to(
         if start > end:
             start, end = end, start
 
-        cals = await get_all_calendars(principal)
+        asyncio.create_task(run_in_background(user.mm_user_id, principal, start, end))
 
-        return await calendar_views.base_view(cals, 'get_all.md', (start, end))
+        return success_ok(mm_username)
 
 
 @auth_required
@@ -105,9 +110,9 @@ async def current(
 
     else:
 
-        cals = await get_all_calendars(principal)
+        asyncio.create_task(run_in_background(user.mm_user_id, principal, start, end))
 
-        return await calendar_views.base_view(cals, 'get_all.md', (start, end))
+        return success_ok(mm_username)
 
 
 @auth_required
@@ -120,15 +125,15 @@ async def today(
     start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
     end = start.replace(hour=23, minute=59, second=59)
 
-    cals = await get_all_calendars(principal)
+    asyncio.create_task(run_in_background(user.mm_user_id, principal, start, end))
 
-    return await calendar_views.base_view(cals, 'get_all.md', (start, end))
+    return success_ok(user.login)
 
 
 async def daily_notification(
         principal: Principal,
         user: Row,
-        exist_calendars: list[Calendar]
+        exist_calendars: list[Calendar] | set[Calendar]
 ) -> dict:
     start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
     end = start.replace(hour=23, minute=59, second=59)
@@ -188,3 +193,9 @@ async def get_calendar_by_cal_id(principal: Principal, cal_id: str) -> Calendar 
 
 async def create_calendar(principal: Principal, *args, **kwargs) -> Calendar:
     return await asyncio.to_thread(principal.make_calendar, *args, **kwargs)
+
+
+async def run_in_background(mm_user_id: str, principal: Principal, start: datetime, end: datetime):
+    cals = await get_all_calendars(principal)
+    result = await calendar_views.base_view(cals, 'get_all.md', (start, end))
+    asyncio.create_task(send_ephemeral_msg_client(mm_user_id, result['text']))

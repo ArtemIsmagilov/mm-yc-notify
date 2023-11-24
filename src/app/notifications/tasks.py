@@ -41,10 +41,10 @@ async def task1(mm_user_id: str, hour: int, minute: int):
 
 # task-next-conf
 @actor(max_retries=1)
-async def task2(mm_user_id: str, uid: str):
+async def task2(mm_user_id: str, uid: str, dtstart: str):
     """notify_next_conference_job"""
-    logging.debug('notify_next_conference_job(%s, %s)', mm_user_id, uid)
-    await notify_next_conference_job(mm_user_id, uid)
+    logging.debug('notify_next_conference_job(%s, %s, %s)', mm_user_id, uid, dtstart)
+    await notify_next_conference_job(mm_user_id, uid, dtstart)
 
 
 @actor(max_retries=1)
@@ -175,7 +175,7 @@ async def change_status_job(mm_user_id: str, expires_at: str):
             asyncio.create_task(update_custom_status(mm_user_id, new_options))
 
 
-async def notify_next_conference_job(mm_user_id: str, uid: str) -> None:
+async def notify_next_conference_job(mm_user_id: str, uid: str, dtstart: str) -> None:
     async with get_conn() as conn:
         user = await User.get_user(conn, mm_user_id)
 
@@ -211,6 +211,9 @@ async def notify_next_conference_job(mm_user_id: str, uid: str) -> None:
         if i_event.get('X-TELEMOST-CONFERENCE'):
 
             conf_obj = Conference(i_event, user.timezone)
+            # if conference.dtstart has modified than skip send email
+            if dtstart != conf_obj.dtstart:
+                return
 
             if caldav_filters.is_exist_conf_at_time(conf_obj.dtstart):
                 if user.e_c:
@@ -398,11 +401,10 @@ async def load_updated_added_deleted_events(
                     start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(seconds=10)  # debug
 
                     delay = get_delay_with_dtstart(start_job)
-                    task2.send_with_options(args=(mm_user_id, conf.uid), delay=delay)
+                    task2.send_with_options(args=(mm_user_id, conf.uid, conf.dtstart), delay=delay)
             else:
                 if (user.e_c or user.ch_stat) and caldav_filters.start_gt_15_min(conf.dtstart):  # production
                     start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(minutes=10)  # production
 
                     delay = get_delay_with_dtstart(start_job)
-                    task2.send_with_options(args=(mm_user_id, conf.uid), delay=delay)
-
+                    task2.send_with_options(args=(mm_user_id, conf.uid, conf.dtstart), delay=delay)

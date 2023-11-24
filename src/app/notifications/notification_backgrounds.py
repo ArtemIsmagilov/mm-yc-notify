@@ -6,11 +6,13 @@ import caldav.lib.error as caldav_errs
 from .. import dict_responses
 from ..calendars.caldav_api import get_calendar_by_cal_id
 from ..converters import get_h_m_utc, get_delay_daily
+from ..decorators.account_decorators import app_error
 from ..notifications import tasks
 from ..sql_app.crud import User, YandexCalendar
 from ..sql_app.database import get_conn
 
 
+@app_error
 async def bg_continue_create_notification(
         user: Row,
         principal: Principal,
@@ -55,3 +57,11 @@ async def bg_continue_create_notification(
 
     delay = get_delay_daily(h, m)
     tasks.task1.send_with_options(args=(user.mm_user_id, h, m), delay=delay)
+
+
+@app_error
+async def bg_remove_notification(
+        mm_user_id: str
+):
+    async with get_conn() as conn:
+        await YandexCalendar.remove_cals(conn, mm_user_id)

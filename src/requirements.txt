@@ -12,5 +12,5 @@ pytest==7.4.3
 aiohttp==3.9.0
 dramatiq[rabbitmq]==1.15.0
 APScheduler==4.0.0a4
-pytest-asyncio==0.23.0a0
+pytest-asyncio==0.23.0a1
 coverage==7.3.2

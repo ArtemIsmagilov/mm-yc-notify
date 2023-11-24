@@ -2,15 +2,15 @@ from ..dict_responses import already_exists_integration, unauth_integration
 from ..sql_app.database import get_conn
 from ..sql_app.crud import User
 from ..calendars.caldav_funcs import take_principal
-
-import functools, logging
+from functools import wraps
+import logging, traceback
 from quart import request
 from httpx import HTTPError
 from sqlalchemy.engine import Row
 
 
 def auth_required(view):
-    @functools.wraps(view)
+    @wraps(view)
     async def wrapped_view(*args, **kwargs):
         data = await request.json
         mm_user_id = data['context']['acting_user']['id']
@@ -28,7 +28,7 @@ def auth_required(view):
 
 
 def required_account_does_not_exist(view):
-    @functools.wraps(view)
+    @wraps(view)
     async def wrapped_view(*args, **kwargs):
         data = await request.json
         mm_user_id = data['context']['acting_user']['id']
@@ -45,7 +45,7 @@ def required_account_does_not_exist(view):
 
 
 def dependency_principal(func):
-    @functools.wraps(func)
+    @wraps(func)
     async def wrapped_funcs(user: Row, *args, **kwargs):
         response = await take_principal(user.login, user.token)
 
@@ -59,12 +59,26 @@ def dependency_principal(func):
 
 
 def bot_error(func):
-    @functools.wraps(func)
+    @wraps(func)
     async def wrapped(*args, **kwargs):
         try:
             result = await func(*args, **kwargs)
         except HTTPError as exp:
-            logging.error('Bot http error: %s', exp)
+            logging.error('Bot http error: %s', traceback.format_exc())
+            return exp
+        else:
+            return result
+
+    return wrapped
+
+
+def app_error(func):
+    @wraps(func)
+    async def wrapped(*args, **kwargs):
+        try:
+            result = await func(*args, **kwargs)
+        except Exception as exp:
+            logging.error('App error: %s', traceback.format_exc())
             return exp
         else:
             return result

@@ -9,7 +9,7 @@ from settings import Conf
 # python -m app.notifications.task0_scheduler
 async def start_scheduler():
     async with AsyncScheduler() as scheduler:
-        print('start pooling', flush=True)
+        print('start polling', flush=True)
         await scheduler.add_schedule(task0, IntervalTrigger(seconds=Conf.CHECK_EVENTS))
         await scheduler.run_until_stopped()
 

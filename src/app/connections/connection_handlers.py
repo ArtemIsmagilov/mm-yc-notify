@@ -1,13 +1,10 @@
 from ..app_handlers import static_file
-from ..calendars import caldav_api
 from ..calendars.caldav_funcs import take_principal
 from ..constants import EXPAND_DICT, UTCs
-from ..converters import create_table_md, client_id_calendar
 from ..decorators.account_decorators import required_account_does_not_exist, auth_required
-from ..dict_responses import success_remove_integration, success_create_integration, success_update_integration
-from ..sql_app.database import get_conn
-from ..sql_app.crud import User, YandexCalendar
-
+from ..dict_responses import success_remove_integration, success_create_integration, success_update_integration, \
+    success_ok
+from ..connections import connection_backgrounds
 import asyncio
 from quart import url_for, request
 from sqlalchemy.engine import Row
@@ -19,47 +16,8 @@ async def profile():
 
     mm_user_id = data['context']['acting_user']['id']
     mm_username = data['context']['acting_user']['username']
-
-    account = {'status': 'Anonymous'}
-
-    async with get_conn() as conn:
-
-        user = await User.get_user(conn, mm_user_id)
-
-        if user:
-
-            account.update(
-                status='User',
-                login=user.login,
-                username='@%s' % mm_username,
-                timezone=user.timezone,
-                notify_every_confernece='%s' % user.e_c,
-                changing_status_every_confernece='%s' % user.ch_stat,
-                sync_calendars='None',
-            )
-
-            principal = await take_principal(user.login, user.token)
-
-            if type(principal) is dict:
-                await User.remove_user(conn, mm_user_id)
-                return principal
-
-            if await YandexCalendar.get_first_cal(conn, mm_user_id):
-                cals = await caldav_api.check_exist_calendars_by_cal_id(
-                    conn, principal, YandexCalendar.get_cals(conn, mm_user_id)
-                )
-
-                if type(cals) is dict:
-                    return cals
-
-                account.update(sync_calendars=', '.join(client_id_calendar(c) for c in cals or 'None'))
-
-    text = create_table_md(account)
-
-    return {
-        'type': 'ok',
-        'text': text,
-    }
+    asyncio.create_task(connection_backgrounds.bg_profile(mm_user_id, mm_username))
+    return success_ok(mm_username)
 
 
 @required_account_does_not_exist
@@ -79,15 +37,7 @@ async def create_account(conn: AsyncConnection):
     if type(principal) is dict:
         return principal
 
-    await User.add_user(
-        conn,
-        mm_user_id=mm_user_id,
-        login=login,
-        token=token,
-        timezone=timezone,
-        e_c=False,
-        ch_stat=False,
-    )
+    asyncio.create_task(connection_backgrounds.bg_create_account(mm_user_id, login, token, timezone))
 
     return success_create_integration(mm_username)
 
@@ -176,14 +126,7 @@ async def update_account(conn: AsyncConnection, user: Row) -> dict:
     if type(principal) is dict:
         return principal
 
-    async with asyncio.TaskGroup() as tg:
-        tg.create_task(YandexCalendar.remove_cals(
-            conn, mm_user_id
-        ))
-
-        tg.create_task(User.update_user(
-            conn, mm_user_id, login=login, token=token, timezone=timezone, e_c=False, ch_stat=False
-        ))
+    asyncio.create_task(connection_backgrounds.bg_update_account(mm_user_id, login, token, timezone))
 
     return success_update_integration(mm_username)
 
@@ -212,6 +155,6 @@ async def delete_account(conn: AsyncConnection, user: Row) -> dict:
     mm_user_id = data['context']['acting_user']['id']
     mm_username = data['context']['acting_user']['username']
 
-    await User.remove_user(conn, mm_user_id)
+    asyncio.create_task(connection_backgrounds.bg_remove_account(mm_user_id))
 
     return success_remove_integration(mm_username)
