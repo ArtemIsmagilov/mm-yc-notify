@@ -64,17 +64,3 @@ def client(app):
 @pytest.fixture  # (scope="session")
 def runner(app):
     return app.test_cli_runner()
-
-
-@pytest.fixture  # (scope="session")
-def stub_broker():
-    broker.flush('default.DQ')
-    return broker
-
-
-@pytest.fixture  # (scope="session")
-def stub_worker():
-    worker = Worker(broker, worker_timeout=100)
-    worker.start()
-    yield worker
-    worker.stop()

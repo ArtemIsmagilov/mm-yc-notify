@@ -394,9 +394,9 @@
     ```bash
     sudo docker compose up -d
     ```
-2. worker dramatiq-gevent
+2. worker dramatiq
     ```bash
-    dramatiq-gevent app.notifications.tasks -p 8 -t 250
+    dramatiq app.notifications.tasks
     ```
 3. events scheduler
     ```bash
@@ -442,6 +442,7 @@
 - rabbitmq docker environs https://www.rabbitmq.com/configure.html#supported-environment-variables
 - asyncpg interface error https://stackoverflow.com/questions/66444620/asyncpg-cannot-perform-operation-another-operation-is-in-progress
 - best naming endpoints in restful https://blog.dreamfactory.com/best-practices-for-naming-rest-api-endpoints/
+- pgadmin https://www.pgadmin.org/docs/pgadmin4/latest/container_deployment.html
 
 ## Вопрос-ответ
 

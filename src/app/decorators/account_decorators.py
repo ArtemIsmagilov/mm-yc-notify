@@ -4,7 +4,7 @@ from ..sql_app.crud import User
 from ..calendars.caldav_funcs import take_principal
 
 import functools, logging
-from quart import g, request
+from quart import request
 from httpx import HTTPError
 from sqlalchemy.engine import Row
 

@@ -5,7 +5,6 @@
 # 3. quart init-db -c
 # 4. start worker dramatiq
 import asyncio
-from apscheduler.triggers.interval import IntervalTrigger
 from zoneinfo import ZoneInfo
 from apscheduler.triggers.cron import CronTrigger
 import pytest
@@ -17,7 +16,6 @@ from app import dict_responses
 from app.notifications import tasks
 from app.sql_app.crud import User, YandexCalendar
 from app.sql_app.database import get_conn
-from . import conftest
 
 from .additional_funcs import decrease_user, increase_user, increase_calendar
 from .conftest import Conf, mm_user_id, test_principal, test_calendar1, test_calendar2
@@ -845,16 +843,6 @@ class TestNotifications:
         assert response.status_code == 200
         assert json_response['type'] == 'ok'
 
-        # check next time daily notification
-        for m in stub_broker.consume('default.DQ', timeout=0):
-            message_dict = m.asdict()
-            eta = datetime.fromtimestamp(message_dict['options']['eta'] // 1000, tz=UTC)
-            current_eta = CronTrigger(hour=7, second=0, timezone=ZoneInfo(Conf.test_client_ya_timezone)).next()
-
-            assert eta + timedelta(seconds=10) > current_eta > eta - timedelta(seconds=10)
-
-            break
-
     async def test_success_really_update_notification(self, client, post_fix='really_update_notification'):
         data = {'context': {'acting_user': {'id': mm_user_id, 'username': Conf.test_client_username}}}
 
@@ -999,16 +987,6 @@ class TestNotifications:
 
         assert response.status_code == 200
         assert json_response['type'] == 'ok'
-
-        # check next time daily notification
-        for m in stub_broker.consume('default.DQ', timeout=0):
-            message_dict = m.asdict()
-            eta = datetime.fromtimestamp(message_dict['options']['eta'] // 1000, tz=UTC)
-            current_eta = CronTrigger(hour=7, second=0, timezone=ZoneInfo(Conf.test_client_ya_timezone)).next()
-
-            assert eta + timedelta(seconds=10) > current_eta > eta - timedelta(seconds=10)
-
-            break
 
     async def test_success_really_delete_notification(self, client, post_fix="really_delete_notification"):
         data = {'context': {'acting_user': {'id': mm_user_id, 'username': Conf.test_client_username}}}

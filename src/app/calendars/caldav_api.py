@@ -141,10 +141,10 @@ async def check_exist_calendars_by_cal_id(
         principal: Principal,
         cals: AsyncGenerator[Row, None],
 ) -> set[Calendar] | dict:
-    background_tasks = set()
-
-    async for c in cals:
-        background_tasks.add(asyncio.create_task(get_calendar_by_cal_id(principal, cal_id=c.cal_id)))
+    background_tasks = [
+        asyncio.create_task(get_calendar_by_cal_id(principal, cal_id=c.cal_id))
+        async for c in cals
+    ]
 
     cals_set = set()
     for task in asyncio.as_completed(background_tasks):

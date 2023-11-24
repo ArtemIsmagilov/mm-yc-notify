@@ -1,19 +1,17 @@
+from . import backgrounds
 from .. import dict_responses
-from ..calendars.caldav_api import get_calendar_by_cal_id
-from ..notifications import tasks
 from ..app_handlers import static_file
 from ..calendars import caldav_api
 from ..constants import EXPAND_DICT, TIMEs
-from ..converters import get_h_m_utc, client_id_calendar, get_delay_daily
+from ..converters import  client_id_calendar
 from ..decorators.account_decorators import dependency_principal, auth_required
-from ..sql_app.crud import YandexCalendar, User
+from ..sql_app.crud import YandexCalendar
 
 import asyncio
 from typing import Generator
 from quart import render_template, url_for, request
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
-import caldav.lib.error as caldav_errs
 from caldav import Calendar, Principal
 
 
@@ -122,48 +120,9 @@ async def continue_create_notification(
     if first_cal:
         return dict_responses.is_exists_scheduler(mm_username)
 
-    h, m = get_h_m_utc(daily_clock, user.timezone)
-
-    result_cals_cal_id = await asyncio.gather(
-        *(get_calendar_by_cal_id(principal, cal_id=c['value']) for c in cals_form)
+    asyncio.create_task(
+        backgrounds.bg_continue_create_notification(user, principal, cals_form, daily_clock, e_c, ch_stat)
     )
-
-    try:
-        result_sync_cals = await asyncio.gather(
-            *(asyncio.to_thread(result_cal.objects_by_sync_token, load_objects=True)
-              for result_cal in result_cals_cal_id)
-            , return_exceptions=True
-        )
-    except caldav_errs.NotFoundError as exp:
-
-        return dict_responses.calendar_not_found()
-
-    sync_cals_in_db = [
-        {'mm_user_id': user.mm_user_id, 'cal_id': sync_cal.calendar.id, 'sync_token': sync_cal.sync_token}
-        for sync_cal in result_sync_cals
-    ]
-
-    async with asyncio.TaskGroup() as tg:
-
-        tg.create_task(User.update_user(conn, user.mm_user_id, e_c=e_c, ch_stat=ch_stat))
-
-        tg.create_task(YandexCalendar.add_many_cals(conn, sync_cals_in_db))
-
-    async with asyncio.TaskGroup() as tg:
-
-        for sync_cal in result_sync_cals:
-            tg.create_task(tasks.load_updated_added_deleted_events(conn, user, sync_cal, notify=False))
-
-    # required job1 daily notification at current clock
-
-    delay = get_delay_daily(h, m)
-    tasks.task1.send_with_options(args=(mm_user_id, h, m), delay=delay)
-
-    # job2 if e_c or ch_stat (is optional)
-    # in check event
-
-    # job3 if CHECK_EVENTS
-    # in check event
 
     return {
         'type': 'ok',
@@ -302,48 +261,9 @@ async def continue_update_notification(
     if first_cal:
         return dict_responses.is_exists_scheduler(mm_username)
 
-    h, m = get_h_m_utc(daily_clock, user.timezone)
-
-    result_cals_cal_id = await asyncio.gather(
-        *(get_calendar_by_cal_id(principal, cal_id=c['value']) for c in cals_form)
+    asyncio.create_task(
+        backgrounds.bg_continue_create_notification(user, principal, cals_form, daily_clock, e_c, ch_stat)
     )
-
-    try:
-        result_sync_cals = await asyncio.gather(
-            *(asyncio.to_thread(result_cal.objects_by_sync_token, load_objects=True)
-              for result_cal in result_cals_cal_id)
-            , return_exceptions=True
-        )
-    except caldav_errs.NotFoundError as exp:
-
-        return dict_responses.calendar_not_found()
-
-    sync_cals_in_db = [
-        {'mm_user_id': user.mm_user_id, 'cal_id': sync_cal.calendar.id, 'sync_token': sync_cal.sync_token}
-        for sync_cal in result_sync_cals
-    ]
-
-    async with asyncio.TaskGroup() as tg:
-
-        tg.create_task(User.update_user(conn, user.mm_user_id, e_c=e_c, ch_stat=ch_stat))
-
-        tg.create_task(YandexCalendar.add_many_cals(conn, sync_cals_in_db))
-
-    async with asyncio.TaskGroup() as tg:
-
-        for sync_cal in result_sync_cals:
-            tg.create_task(tasks.load_updated_added_deleted_events(conn, user, sync_cal, notify=False))
-
-    # required job1 daily notification at current clock
-
-    delay = get_delay_daily(h, m)
-    tasks.task1.send_with_options(args=(mm_user_id, h, m), delay=delay)
-
-    # job2 if e_c or ch_stat (is optional)
-    # in check event
-
-    # job3 if CHECK_EVENTS
-    # in check event
 
     return {
         'type': 'ok',

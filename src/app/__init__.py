@@ -2,7 +2,8 @@ def create_app(test_config=None):
     from quart import Quart
     import logging, os
 
-    app = Quart(__name__, instance_relative_config=True, static_url_path='/static', static_folder='./static')
+    app = Quart(__name__, static_url_path='/static', static_folder='./static')
+    app.testing = True
     os.makedirs(app.instance_path, exist_ok=True)
 
     @app.get('/manifest.json')
@@ -59,7 +60,6 @@ def create_app(test_config=None):
 
     from settings import Conf
 
-    if Conf.DEBUG:
-        logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=Conf.LOG_LEVEL)
 
     return app

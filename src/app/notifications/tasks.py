@@ -20,8 +20,9 @@ from ..sql_app.crud import YandexConference, YandexCalendar, User
 from ..sql_app.database import get_conn
 from ..notifications.worker import *
 
-if Conf.DEBUG:
-    logging.basicConfig(level=logging.DEBUG)
+# dramatiq app.notifications.tasks
+
+logging.basicConfig(level=Conf.LOG_LEVEL)
 
 
 async def task0():
@@ -92,9 +93,8 @@ async def check_events_job():
 
             else:
 
-                async with asyncio.TaskGroup() as tg:
-                    async for get_user_cal in YandexCalendar.get_cals(conn, user.mm_user_id):
-                        tg.create_task(_load_changes_events(conn, principal, user, get_user_cal))
+                async for get_user_cal in YandexCalendar.get_cals(conn, user.mm_user_id):
+                    await _load_changes_events(conn, principal, user, get_user_cal)
 
 
 async def return_latest_custom_status_job(mm_user_id: str, latest_custom_status: str):
@@ -388,8 +388,11 @@ async def load_updated_added_deleted_events(
 
                     asyncio.create_task(send_msg_client(mm_user_id, represents.get('text')))
 
-            # new conference + user e_c or ch_stat + start date > now + 15 min
+            # else conference is exists
+            else:
+                continue
 
+            # new conference + user e_c or ch_stat + start date > now + 15 min
             if Conf.TESTING:
                 if (user.e_c or user.ch_stat) and caldav_filters.start_gt_now(conf.dtstart):  # debug
                     start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(seconds=10)  # debug

@@ -2,7 +2,7 @@ import asyncio
 from apscheduler import AsyncScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from ..notifications.tasks import task0
+from app.notifications.tasks import task0
 from settings import Conf
 
 

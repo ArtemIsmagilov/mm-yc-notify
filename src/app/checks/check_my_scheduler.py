@@ -4,7 +4,6 @@ from quart import request
 
 from ..decorators.account_decorators import auth_required
 from ..dict_responses import is_disable_scheduler, is_enable_scheduler
-from ..sql_app.database import get_conn
 from ..sql_app.crud import YandexCalendar
 
 

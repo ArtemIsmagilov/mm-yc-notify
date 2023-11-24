@@ -2,14 +2,52 @@ version: '3.9'
 
 services:
 
+  db:
+    image: "postgres:alpine"
+    restart: "unless-stopped"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: postgres
+
+  adminer:
+    image: adminer
+    ports:
+      - 8080:8080
+    restart: "unless-stopped"
+
+
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    hostname: 'my-rabbit'
+    restart: "unless-stopped"
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+      - RABBITMQ_DEFAULT_VHOST=my_vhost
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit disk_free_limit 1147483648
+
   app:
 
-    image: "python:slim"
+    image: "python"
     working_dir: "/app"
     volumes:
       - "../:/app"
     command: >
       bash -c "pip install -r requirements.txt
+      && quart init-db
+      && (python -m app.notifications.task0_scheduler &)
+      && (dramatiq app.notifications.tasks &)
       && bash run-server.bash
       "
-    network_mode: "host"
+    depends_on:
+      - "db"
+      - "rabbitmq"
+
+    ports:
+      - 8090:8090
+    restart: "unless-stopped"

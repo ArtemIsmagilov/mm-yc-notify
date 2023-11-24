@@ -3,7 +3,6 @@ services:
   rabbitmq:
     image: rabbitmq:3-management-alpine
     hostname: 'my-rabbit'
-    #restart: always
     ports:
         - 5672:5672
         - 15672:15672
@@ -11,4 +10,4 @@ services:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
       - RABBITMQ_DEFAULT_VHOST=my_vhost
-      #- RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit disk_free_limit 1147483648
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit disk_free_limit 1147483648

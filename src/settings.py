@@ -18,7 +18,7 @@ class Conf:
 
     # quart config
     SECRET_KEY = os.environ['SECRET_KEY']
-    DEBUG = True if os.environ['DEBUG'].lower() in ('true', 'y', 'yes',) else False
+    LOG_LEVEL = int(os.environ['LOG_LEVEL'])
     TESTING = True if os.environ['TESTING'].lower() in ('true', 'y', 'yes',) else False
 
     # dramatiq config
