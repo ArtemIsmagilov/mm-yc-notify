@@ -1,6 +1,6 @@
 import asyncio
 
-from ..bots.bot_commands import send_msg_client
+from ..bots.bot_commands import send_msg_client, send_ephemeral_msg_client
 from ..calendars import caldav_api
 from ..calendars.caldav_funcs import take_principal
 from ..converters import client_id_calendar, create_table_md
@@ -49,7 +49,7 @@ async def bg_profile(
 
     text = create_table_md(account)
 
-    asyncio.create_task(send_msg_client(mm_user_id, text))
+    asyncio.create_task(send_ephemeral_msg_client(mm_user_id, text))
 
 
 @app_error
