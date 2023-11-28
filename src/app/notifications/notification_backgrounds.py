@@ -4,7 +4,7 @@ import asyncio
 import caldav.lib.error as caldav_errs
 
 from .. import dict_responses
-from ..calendars.caldav_api import get_calendar_by_cal_id
+from ..async_wraps.async_wrap_caldav import caldav_objects_by_sync_token, caldav_calendar_by_cal_id
 from ..converters import get_h_m_utc, get_delay_daily
 from ..decorators.account_decorators import app_error
 from ..notifications import tasks
@@ -25,12 +25,13 @@ async def bg_continue_create_notification(
 
     async with asyncio.TaskGroup() as tg:
         result_cals_cal_id = set(
-            tg.create_task(get_calendar_by_cal_id(principal, cal_id=c['value'])) for c in cals_form)
+            tg.create_task(caldav_calendar_by_cal_id(principal, cal_id=c['value'])) for c in cals_form
+        )
 
     try:
         async with asyncio.TaskGroup() as tg:
             result_sync_cals = set(
-                tg.create_task(asyncio.to_thread(result_cal.result().objects_by_sync_token, load_objects=True))
+                tg.create_task(caldav_objects_by_sync_token(result_cal.result(), load_objects=True))
                 for result_cal in result_cals_cal_id
             )
 

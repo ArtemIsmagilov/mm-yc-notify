@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncConnection
-from ..bots.bot_commands import send_msg_client, send_ephemeral_msg_client
-from . import calendar_views
+
+from .calendar_backgrounds import run_in_background
+from ..async_wraps.async_wrap_caldav import caldav_calendar_by_cal_id, caldav_objects_by_sync_token
 from ..decorators.account_decorators import dependency_principal, auth_required
 from .. import dict_responses
 from ..dict_responses import success_ok
@@ -16,7 +17,6 @@ import asyncio
 from typing import AsyncGenerator, Sequence
 
 from ..sql_app.crud import YandexCalendar
-from ..sql_app.database import get_conn
 
 
 @auth_required
@@ -154,7 +154,7 @@ async def check_exist_calendars_by_cal_id(
         cals: AsyncGenerator[Row, None],
 ) -> set[Calendar] | dict:
     background_tasks = [
-        asyncio.create_task(get_calendar_by_cal_id(principal, cal_id=c.cal_id))
+        asyncio.create_task(caldav_calendar_by_cal_id(principal, cal_id=c.cal_id))
         async for c in cals
     ]
 
@@ -164,7 +164,7 @@ async def check_exist_calendars_by_cal_id(
 
         try:
 
-            await asyncio.to_thread(cal.objects_by_sync_token)
+            await caldav_objects_by_sync_token(cal)
 
         except caldav_errs.NotFoundError as exp:
 
@@ -178,41 +178,3 @@ async def check_exist_calendars_by_cal_id(
 
     return cals_set
 
-
-async def get_all_calendars(principal: Principal) -> list[Calendar] | dict:
-    result = await asyncio.to_thread(principal.calendars)
-    if not result:
-        return dict_responses.no_calendars_on_server()
-    return result
-
-
-async def get_calendar_by_name(principal: Principal, name: str) -> Calendar | dict:
-    try:
-        result = await asyncio.to_thread(principal.calendar, name=name)
-    except caldav_errs.NotFoundError as exp:
-        return dict_responses.calendar_dosnt_exists()
-    return result
-
-
-async def get_calendar_by_cal_id(principal: Principal, cal_id: str) -> Calendar:
-    return await asyncio.to_thread(principal.calendar, cal_id=cal_id)
-
-
-async def create_calendar(principal: Principal, *args, **kwargs) -> Calendar:
-    return await asyncio.to_thread(principal.make_calendar, *args, **kwargs)
-
-
-async def run_in_background(mm_user_id: str, channel_id: str, principal: Principal, start: datetime, end: datetime):
-    async with get_conn() as conn:
-        cals_server = set()
-        async for c in YandexCalendar.get_cals(conn, mm_user_id):
-            c_server = await get_calendar_by_cal_id(principal, c.cal_id)
-            try:
-                await asyncio.to_thread(c_server.objects_by_sync_token)
-            except caldav_errs.NotFoundError as exp:
-                await YandexCalendar.remove_cal(conn, c.cal_id)
-            else:
-                cals_server.add(c_server)
-
-    result = await calendar_views.base_view(cals_server, 'get_all.md', (start, end))
-    asyncio.create_task(send_ephemeral_msg_client(mm_user_id, channel_id, result['text']))

@@ -2,6 +2,7 @@ import caldav, asyncio
 from caldav import Principal
 import caldav.lib.error as caldav_errors
 
+from ..async_wraps.async_wrap_caldav import caldav_principal
 from ..dict_responses import incorrect_principal, dav_error
 
 
@@ -10,7 +11,7 @@ async def take_principal(login: str, token: str) -> Principal | dict:
 
     try:
         with caldav.DAVClient(url=url) as client:
-            principal = await asyncio.to_thread(client.principal)
+            principal = await caldav_principal(client)
 
     except caldav_errors.AuthorizationError as exp:
 

@@ -8,6 +8,7 @@ from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from ..app_handlers import static_file
+from ..async_wraps.async_wrap_caldav import caldav_calendar_by_cal_id, caldav_objects_by_sync_token, caldav_event_by_uid
 from ..bots.bot_commands import send_msg_client, update_custom_status, get_user_by_mm_user_id
 from ..calendars import caldav_api, caldav_filters
 from ..calendars.caldav_funcs import take_principal
@@ -63,15 +64,13 @@ async def task4(mm_user_id: str, latest_custom_status: str):
 
 
 async def _load_changes_events(conn: AsyncConnection, principal: Principal, user: Row, get_user_cal: Row):
-    not_sync_cal = await caldav_api.get_calendar_by_cal_id(principal, cal_id=get_user_cal.cal_id)
+    not_sync_cal = await caldav_calendar_by_cal_id(principal, cal_id=get_user_cal.cal_id)
 
     # get sync_token from db
 
     try:
 
-        sync_cal = await asyncio.to_thread(
-            not_sync_cal.objects_by_sync_token, sync_token=get_user_cal.sync_token, load_objects=True
-        )
+        sync_cal = await caldav_objects_by_sync_token(not_sync_cal, sync_token=get_user_cal.sync_token, load_objects=True)
 
     except caldav_errors.NotFoundError as exp:
         await YandexCalendar.remove_cal(conn, get_user_cal.cal_id)
@@ -195,11 +194,11 @@ async def notify_next_conference_job(mm_user_id: str, uid: str, dtstart: str) ->
         if not user_conf:
             return
 
-        cal = await caldav_api.get_calendar_by_cal_id(principal, cal_id=user_conf.cal_id)
+        cal = await caldav_calendar_by_cal_id(principal, cal_id=user_conf.cal_id)
 
         try:
 
-            event = await asyncio.to_thread(cal.event_by_uid, uid=uid)
+            event = await caldav_event_by_uid(cal, id=uid)
 
         except caldav_errors.NotFoundError as exp:
 

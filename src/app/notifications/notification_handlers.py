@@ -1,7 +1,7 @@
 from . import notification_backgrounds
 from .. import dict_responses
 from ..app_handlers import static_file
-from ..calendars import caldav_api
+from ..async_wraps.async_wrap_caldav import caldav_all_calendars
 from ..constants import EXPAND_DICT, TIMEs
 from ..converters import client_id_calendar
 from ..decorators.account_decorators import dependency_principal, auth_required
@@ -30,7 +30,7 @@ async def create_notification(
     if await YandexCalendar.get_first_cal(conn, mm_user_id):
         return dict_responses.is_exists_scheduler(mm_username)
 
-    exists_cals = await caldav_api.get_all_calendars(principal=principal)
+    exists_cals = await caldav_all_calendars(principal)
 
     if type(exists_cals) is dict:
         return exists_cals
@@ -167,7 +167,7 @@ async def update_notification(
     if not await YandexCalendar.get_first_cal(conn, mm_user_id):
         return dict_responses.no_scheduler(mm_username)
 
-    exists_cals = await caldav_api.get_all_calendars(principal=principal)
+    exists_cals = await caldav_all_calendars(principal)
 
     if type(exists_cals) is dict:
         return exists_cals

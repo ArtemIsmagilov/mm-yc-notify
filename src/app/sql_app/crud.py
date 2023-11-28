@@ -36,8 +36,7 @@ class User:
     @classmethod
     async def get_user(cls, conn: AsyncConnection, mm_user_id: str) -> Row:
         result = await conn.execute(
-            select(
-                user_account_table.c['mm_user_id', 'login', 'token', 'timezone', 'e_c', 'ch_stat', 'status'])
+            select(user_account_table.c['mm_user_id', 'login', 'token', 'timezone', 'e_c', 'ch_stat', 'status'])
             .where(user_account_table.c.mm_user_id == mm_user_id)
         )
         return result.first()
