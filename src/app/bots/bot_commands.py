@@ -25,9 +25,8 @@ async def send_msg_client(mm_user_id: str, msg: str, props=None):
 
 
 @bot_error
-async def send_ephemeral_msg_client(mm_user_id: str, msg: str, props=None):
-    bot_create_direct_channel = await bot.channels.create_direct_channel([mm_user_id, bot.client.userid])
-    data = {"user_id": mm_user_id, "post": {"channel_id": bot_create_direct_channel["id"], "message": msg}}
+async def send_ephemeral_msg_client(mm_user_id: str, channel_id: str, msg: str, props=None):
+    data = {"user_id": mm_user_id, "post": {"channel_id": channel_id, "message": msg}}
 
     if props:
         data.update({"props": props, })

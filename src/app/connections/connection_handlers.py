@@ -16,7 +16,8 @@ async def profile():
 
     mm_user_id = data['context']['acting_user']['id']
     mm_username = data['context']['acting_user']['username']
-    asyncio.create_task(connection_backgrounds.bg_profile(mm_user_id, mm_username))
+    channel_id = data['context']['channel']['id']
+    asyncio.create_task(connection_backgrounds.bg_profile(mm_user_id, mm_username, channel_id))
     return success_ok(mm_username)
 
 

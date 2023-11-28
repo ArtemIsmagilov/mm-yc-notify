@@ -1,5 +1,5 @@
 def create_app(test_config=None):
-    from quart import Quart
+    from quart import Quart, request
     import logging, os
 
     app = Quart(__name__, static_url_path='/static', static_folder='./static')

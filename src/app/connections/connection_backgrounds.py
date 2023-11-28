@@ -13,6 +13,7 @@ from ..sql_app.database import get_conn
 async def bg_profile(
         mm_user_id: str,
         mm_username: str,
+        channel_id: str
 ):
     account = {'status': 'Anonymous'}
     async with get_conn() as conn:
@@ -49,7 +50,7 @@ async def bg_profile(
 
     text = create_table_md(account)
 
-    asyncio.create_task(send_ephemeral_msg_client(mm_user_id, text))
+    asyncio.create_task(send_ephemeral_msg_client(mm_user_id, channel_id, text))
 
 
 @app_error

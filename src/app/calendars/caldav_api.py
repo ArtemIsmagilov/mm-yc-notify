@@ -28,10 +28,11 @@ async def get_a_week(
 ) -> dict:
     data = await request.json
     mm_username = data['context']['acting_user']['username']
+    channel_id = data['context']['channel']['id']
     start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
     end = start + timedelta(days=7)
 
-    asyncio.create_task(run_in_background(user.mm_user_id, principal, start, end))
+    asyncio.create_task(run_in_background(user.mm_user_id, channel_id, principal, start, end))
 
     return success_ok(mm_username)
 
@@ -45,10 +46,11 @@ async def get_a_month(
 ) -> dict:
     data = await request.json
     mm_username = data['context']['acting_user']['username']
+    channel_id = data['context']['channel']['id']
     start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
     end = start + timedelta(days=30)
 
-    asyncio.create_task(run_in_background(user.mm_user_id, principal, start, end))
+    asyncio.create_task(run_in_background(user.mm_user_id, channel_id, principal, start, end))
 
     return success_ok(mm_username)
 
@@ -63,6 +65,7 @@ async def from_to(
     data = await request.json
 
     mm_username = data['context']['acting_user']['username']
+    channel_id = data['context']['channel']['id']
     dtstart, dtend = data['values']['from_date'], data['values']['to_date']
 
     try:
@@ -83,7 +86,7 @@ async def from_to(
         if start > end:
             start, end = end, start
 
-        asyncio.create_task(run_in_background(user.mm_user_id, principal, start, end))
+        asyncio.create_task(run_in_background(user.mm_user_id, channel_id, principal, start, end))
 
         return success_ok(mm_username)
 
@@ -98,6 +101,7 @@ async def current(
     data = await request.json
 
     mm_username = data['context']['acting_user']['username']
+    channel_id = data['context']['channel']['id']
     dt = data['values']['date']
 
     try:
@@ -111,7 +115,7 @@ async def current(
 
     else:
 
-        asyncio.create_task(run_in_background(user.mm_user_id, principal, start, end))
+        asyncio.create_task(run_in_background(user.mm_user_id, channel_id, principal, start, end))
 
         return success_ok(mm_username)
 
@@ -123,10 +127,12 @@ async def today(
         user: Row,
         principal: Principal,
 ) -> dict:
+    data = await request.json
+    channel_id = data['context']['channel']['id']
     start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
     end = start.replace(hour=23, minute=59, second=59)
 
-    asyncio.create_task(run_in_background(user.mm_user_id, principal, start, end))
+    asyncio.create_task(run_in_background(user.mm_user_id, channel_id, principal, start, end))
 
     return success_ok(user.login)
 
@@ -196,7 +202,7 @@ async def create_calendar(principal: Principal, *args, **kwargs) -> Calendar:
     return await asyncio.to_thread(principal.make_calendar, *args, **kwargs)
 
 
-async def run_in_background(mm_user_id: str, principal: Principal, start: datetime, end: datetime):
+async def run_in_background(mm_user_id: str, channel_id: str, principal: Principal, start: datetime, end: datetime):
     async with get_conn() as conn:
         cals_server = set()
         async for c in YandexCalendar.get_cals(conn, mm_user_id):
@@ -209,4 +215,4 @@ async def run_in_background(mm_user_id: str, principal: Principal, start: dateti
                 cals_server.add(c_server)
 
     result = await calendar_views.base_view(cals_server, 'get_all.md', (start, end))
-    asyncio.create_task(send_ephemeral_msg_client(mm_user_id, result['text']))
+    asyncio.create_task(send_ephemeral_msg_client(mm_user_id, channel_id, result['text']))
