@@ -2,6 +2,7 @@ import asyncio, json, logging
 from datetime import timedelta, datetime
 from dramatiq import actor
 import caldav.lib.error as caldav_errors
+from zoneinfo import ZoneInfo
 from caldav import SynchronizableCalendarObjectCollection as SyncCal, Principal
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
@@ -13,7 +14,7 @@ from ..calendars.caldav_funcs import take_principal
 from ..calendars.conference import Conference
 from ..converters import (
     get_dt_with_UTC_tz_from_iso, iso1_gt_iso2, dont_clear, create_conference_table, create_row_table, equal_conferences,
-    get_delay_with_dtstart, get_delay_daily
+    get_delay_with_dtstart, get_delay_daily, conference_all_day
 )
 from ..notifications import notification_views
 from ..sql_app.crud import YandexConference, YandexCalendar, User
@@ -73,7 +74,7 @@ async def _load_changes_events(conn: AsyncConnection, principal: Principal, user
         )
 
     except caldav_errors.NotFoundError as exp:
-        await YandexCalendar.remove_cals(conn, user.mm_user_id)
+        await YandexCalendar.remove_cal(conn, get_user_cal.cal_id)
 
     else:
         # update sync_token in db
@@ -236,10 +237,10 @@ async def notify_next_conference_job(mm_user_id: str, uid: str, dtstart: str) ->
                         ]}
                     asyncio.create_task(send_msg_client(mm_user_id, msg, props))
 
-                if user.ch_stat:
+                if user.ch_stat and not conference_all_day(conf_obj):
                     delay = get_delay_with_dtstart(datetime.fromisoformat(conf_obj.dtstart))
 
-                    task3.send_with_options(args=(mm_user_id, conf_obj.dtend,), delay=delay)
+                    task3.send_with_options(args=(mm_user_id, conf_obj.dtend), delay=delay)
 
 
 async def daily_notification_job(mm_user_id: str, hour: int, minute: int):
@@ -253,7 +254,6 @@ async def daily_notification_job(mm_user_id: str, hour: int, minute: int):
 
         if type(principal) is dict:
             await User.remove_user(conn, mm_user_id)
-            asyncio.create_task(send_msg_client(mm_user_id, principal.get('text')))
             return
 
         if not await YandexCalendar.get_first_cal(conn, mm_user_id):

@@ -1,15 +1,15 @@
 from ..calendars.conference import Conference
 
 from datetime import datetime
-from caldav import Calendar
+from caldav import Calendar, Event
 import asyncio
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Sequence
 
 
 async def find_conferences_in_some_cals(
-        calendars: list[Calendar] | tuple[Calendar],
+        calendars: Sequence[Calendar],
         dates: tuple[datetime, datetime],
-) -> AsyncGenerator[list[Conference], None]:
+) -> AsyncGenerator[Sequence[Conference], None]:
     tasks_generator = (asyncio.create_task(find_conferences_in_one_cal(cal, dates)) for cal in calendars)
 
     for task in asyncio.as_completed(tasks_generator):
@@ -21,9 +21,9 @@ async def find_conferences_in_some_cals(
 async def find_conferences_in_one_cal(
         cal: Calendar,
         dates: tuple[datetime, datetime],
-) -> tuple[str | None, list[Conference]]:
+) -> tuple[str | None, Sequence[Conference]]:
     timezone = str(dates[0].tzinfo)
-    events = await asyncio.to_thread(cal.search, start=dates[0], end=dates[1], event=True, sort_keys=("dtstart",))
+    events = await asyncio.to_thread(cal.search, comp_class=Event, start=dates[0], end=dates[1], sort_keys=("dtstart",))
     conferences = [
         Conference(e.icalendar_component, timezone) for e in events
         if e.icalendar_component.get("X-TELEMOST-CONFERENCE")

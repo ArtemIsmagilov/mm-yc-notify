@@ -1,6 +1,8 @@
 .env
 celerybeat-schedule
 celery.log
+access.log
+error.log
 
 postgres/
 .idea

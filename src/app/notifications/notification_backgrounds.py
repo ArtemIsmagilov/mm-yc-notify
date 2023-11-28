@@ -51,7 +51,9 @@ async def bg_continue_create_notification(
 
             tg.create_task(YandexCalendar.add_many_cals(conn, sync_cals_in_db))
 
+    async with get_conn() as conn:
         async with asyncio.TaskGroup() as tg:
+            user = await User.get_user(conn, user.mm_user_id)
             for sync_cal in result_sync_cals:
                 tg.create_task(tasks.load_updated_added_deleted_events(conn, user, sync_cal.result(), notify=False))
 

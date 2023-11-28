@@ -38,6 +38,11 @@ def iso1_gt_iso2(iso1: str, iso2: str) -> bool:
     return first > second
 
 
+def conference_all_day(conf: Conference):
+    start, end = datetime.fromisoformat(conf.dtstart), datetime.fromisoformat(conf.dtend)
+    return start.hour, start.minute, start.second == end.hour, end.minute, end.second
+
+
 def dont_clear(iso_data: str) -> bool:
     """0001-01-01T00:00:00Z"""
     inf_d = datetime(year=1, month=1, day=1, hour=0, minute=0)

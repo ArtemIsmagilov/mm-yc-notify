@@ -43,7 +43,6 @@ class Conference:
         return f"""
 <Conference \
 uid:{self.uid!r} \
-tzid:{self.tzid!r} \
 timezone:{self.timezone} \
 dtstart:{self.dtstart!r} \
 dtend:{self.dtend!r} \
@@ -63,11 +62,6 @@ location:{self.location!r}\
     def uid(self) -> str | None:
         if self._uid:
             return shorten(str(self._uid), 255)
-
-    @property
-    def tzid(self) -> str | None:
-        if self._dtstart and self._dtstart.params:
-            return shorten(self._dtstart.params.get("TZID"), 255)
 
     @property
     def timezone(self) -> str | None:

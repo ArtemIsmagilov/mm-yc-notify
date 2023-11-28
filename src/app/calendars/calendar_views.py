@@ -2,9 +2,11 @@ from ..calendars import caldav_searchers
 
 from datetime import datetime
 from quart import render_template
+from typing import Sequence
+from caldav import Calendar
 
 
-async def base_view(calendars: tuple | dict, template: str, dates: tuple[datetime, datetime]) -> dict:
+async def base_view(calendars: Sequence[Calendar] | dict, template: str, dates: tuple[datetime, datetime]) -> dict:
     if type(calendars) is dict:
         return calendars
 

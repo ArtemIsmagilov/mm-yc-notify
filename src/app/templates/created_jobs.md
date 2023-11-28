@@ -9,5 +9,5 @@
 
 {% for cal_name in calendars_names %}
 
-- {{ cal_name.value }}
+- {{ cal_name.label }}
   {% endfor %}

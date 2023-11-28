@@ -2,6 +2,7 @@ from ..calendars import caldav_searchers
 from ..calendars.conference import Conference
 
 from datetime import datetime
+from typing import Sequence
 from caldav import Calendar
 from jinja2 import Environment, PackageLoader, select_autoescape
 
@@ -9,7 +10,7 @@ env = Environment(loader=PackageLoader('app'), autoescape=select_autoescape(), e
 
 
 async def daily_notify_view(
-        calendars: list[Calendar],
+        calendars: Sequence[Calendar],
         template: str,
         dates: tuple[datetime, datetime]
 ) -> dict:
