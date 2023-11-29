@@ -33,7 +33,7 @@ async def caldav_event_by_uid(calendar: Calendar, *args, **kwargs):
 
 
 async def caldav_principal(client: DAVClient):
-    return asyncio.to_thread(client.principal)
+    return await asyncio.to_thread(client.principal)
 
 
 async def caldav_create_calendar(principal: Principal, *args, **kwargs) -> Calendar:
