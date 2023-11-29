@@ -198,7 +198,7 @@ async def notify_next_conference_job(mm_user_id: str, uid: str, dtstart: str) ->
 
         try:
 
-            event = await caldav_event_by_uid(cal, id=uid)
+            event = await caldav_event_by_uid(cal, uid=uid)
 
         except caldav_errors.NotFoundError as exp:
 
