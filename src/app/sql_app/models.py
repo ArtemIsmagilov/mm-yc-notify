@@ -12,6 +12,7 @@ user_account_table = Table(
     Column("timezone", String, nullable=False),
     Column("e_c", Boolean, nullable=False),
     Column("ch_stat", Boolean, nullable=False),
+    Column("session", String, nullable=False, unique=True),
     Column("status", String),
 )
 
@@ -19,8 +20,7 @@ yandex_calendar_table = Table(
     "yandex_calendar",
     metadata_obj,
     Column("id", Integer, primary_key=True),
-    Column("mm_user_id", ForeignKey("user_account.mm_user_id", onupdate="CASCADE", ondelete="CASCADE"),
-           nullable=False),
+    Column("mm_user_id", ForeignKey("user_account.mm_user_id", onupdate="CASCADE", ondelete="CASCADE"), nullable=False),
     Column("cal_id", String, nullable=False, unique=True),
     Column("sync_token", String, unique=True),
 )

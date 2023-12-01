@@ -1,6 +1,7 @@
 import asyncio
+from secrets import token_hex
 
-from ..bots.bot_commands import send_msg_client, send_ephemeral_msg_client
+from ..bots.bot_commands import send_ephemeral_msg_client
 from ..calendars import caldav_api
 from ..calendars.caldav_funcs import take_principal
 from ..converters import client_id_calendar, create_table_md
@@ -69,6 +70,7 @@ async def bg_create_account(
             timezone=timezone,
             e_c=False,
             ch_stat=False,
+            session=token_hex(16)
         )
 
 
@@ -80,16 +82,23 @@ async def bg_update_account(
         timezone: str,
 ):
     async with get_conn() as conn:
-        async with asyncio.TaskGroup() as tg:
-            tg.create_task(
+        await asyncio.gather(
+            asyncio.create_task(
                 YandexCalendar.remove_cals(conn, mm_user_id)
-            )
-
-            tg.create_task(
+            ),
+            asyncio.create_task(
                 User.update_user(
-                    conn, mm_user_id, login=login, token=token, timezone=timezone, e_c=False, ch_stat=False
+                    conn,
+                    mm_user_id,
+                    login=login,
+                    token=token,
+                    timezone=timezone,
+                    e_c=False,
+                    ch_stat=False,
+                    session=token_hex(16),
                 )
-            )
+            ),
+        )
 
 
 @app_error

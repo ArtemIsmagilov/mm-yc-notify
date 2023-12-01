@@ -10,7 +10,7 @@ from typing import AsyncGenerator, Sequence
 async def find_conferences_in_some_cals(
         calendars: Sequence[Calendar],
         dates: tuple[datetime, datetime],
-) -> AsyncGenerator[Sequence[Conference], None]:
+) -> AsyncGenerator[Sequence[Conference], None] | None:
     tasks_generator = (asyncio.create_task(find_conferences_in_one_cal(cal, dates)) for cal in calendars)
 
     for task in asyncio.as_completed(tasks_generator):
@@ -22,7 +22,7 @@ async def find_conferences_in_some_cals(
 async def find_conferences_in_one_cal(
         cal: Calendar,
         dates: tuple[datetime, datetime],
-) -> tuple[str | None, Sequence[Conference]]:
+) -> tuple[str, Sequence[Conference]] | None:
     timezone = str(dates[0].tzinfo)
     events = await caldav_search(cal, comp_class=Event, start=dates[0], end=dates[1], sort_keys=("dtstart",))
     conferences = [

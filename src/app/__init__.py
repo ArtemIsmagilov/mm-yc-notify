@@ -1,5 +1,5 @@
 def create_app(test_config=None):
-    from quart import Quart, request
+    from quart import Quart
     import logging, os
 
     app = Quart(__name__, static_url_path='/static', static_folder='./static')
@@ -60,6 +60,10 @@ def create_app(test_config=None):
 
     from settings import Conf
 
-    logging.basicConfig(level=Conf.LOG_LEVEL)
+    logging.basicConfig(
+        level=Conf.LOG_LEVEL,
+        format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+        datefmt='%d-%m-%Y %H:%M:%S'
+    )
 
     return app

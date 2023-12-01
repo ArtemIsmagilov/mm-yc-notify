@@ -6,13 +6,14 @@ from ..dict_responses import (
     success_remove_integration, success_create_integration, success_update_integration, success_ok
 )
 from ..connections import connection_backgrounds
+from ..schemas import UserView
+
 import asyncio
 from quart import url_for, request
-from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-async def profile():
+async def profile() -> dict:
     data = await request.json
 
     mm_user_id = data['context']['acting_user']['id']
@@ -23,7 +24,7 @@ async def profile():
 
 
 @required_account_does_not_exist
-async def create_account(conn: AsyncConnection):
+async def create_account(conn: AsyncConnection) -> dict:
     data = await request.json
     values = data['values']
 
@@ -44,7 +45,7 @@ async def create_account(conn: AsyncConnection):
     return success_create_integration(mm_username)
 
 
-async def really_update_account():
+async def really_update_account() -> dict:
     data = await request.json
     mm_username = data['context']['acting_user']['username']
 
@@ -53,7 +54,7 @@ async def really_update_account():
         "values": data,
         "form": {
             "title": "Update connections?",
-            "header": f'**{mm_username}**, are you sure, what need update integration with yandex-calendar?',
+            "header": '**%s**, are you sure, what need update integration with yandex-calendar?' % mm_username,
             "icon": static_file('cal.png'),
             "submit": {
                 "path": url_for('connections.update_account_form'),
@@ -63,7 +64,7 @@ async def really_update_account():
     }
 
 
-def update_account_form():
+def update_account_form() -> dict:
     return {
         "type": "form",
         "form": {
@@ -112,7 +113,7 @@ def update_account_form():
 
 
 @auth_required
-async def update_account(conn: AsyncConnection, user: Row) -> dict:
+async def update_account(conn: AsyncConnection, user: UserView) -> dict:
     data = await request.json
     values = data['values']
 
@@ -133,7 +134,7 @@ async def update_account(conn: AsyncConnection, user: Row) -> dict:
     return success_update_integration(mm_username)
 
 
-async def really_delete_account():
+async def really_delete_account() -> dict:
     data = await request.json
     mm_username = data['context']['acting_user']['username']
 
@@ -141,7 +142,7 @@ async def really_delete_account():
         "type": "form",
         "form": {
             "title": "Delete connections?",
-            "header": f'**{mm_username}**, are you sure, what need delete integration with yandex-calendar?',
+            "header": '**%s**, are you sure, what need delete integration with yandex-calendar?' % mm_username,
             "icon": static_file('cal.png'),
             "submit": {
                 "path": url_for('connections.disconnect_account'),
@@ -152,7 +153,7 @@ async def really_delete_account():
 
 
 @auth_required
-async def delete_account(conn: AsyncConnection, user: Row) -> dict:
+async def delete_account(conn: AsyncConnection, user: UserView) -> dict:
     data = await request.json
     mm_user_id = data['context']['acting_user']['id']
     mm_username = data['context']['acting_user']['username']

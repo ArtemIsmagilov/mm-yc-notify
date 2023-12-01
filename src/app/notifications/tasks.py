@@ -2,13 +2,14 @@ import asyncio, json, logging
 from datetime import timedelta, datetime
 from dramatiq import actor
 import caldav.lib.error as caldav_errors
-from zoneinfo import ZoneInfo
 from caldav import SynchronizableCalendarObjectCollection as SyncCal, Principal
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from ..app_handlers import static_file
-from ..async_wraps.async_wrap_caldav import caldav_calendar_by_cal_id, caldav_objects_by_sync_token, caldav_event_by_uid
+from ..async_wraps.async_wrap_caldav import (
+    caldav_calendar_by_cal_id, caldav_objects_by_sync_token, caldav_event_by_uid
+)
 from ..bots.bot_commands import send_msg_client, update_custom_status, get_user_by_mm_user_id
 from ..calendars import caldav_api, caldav_filters
 from ..calendars.caldav_funcs import take_principal
@@ -18,13 +19,17 @@ from ..converters import (
     get_delay_with_dtstart, get_delay_daily, conference_all_day
 )
 from ..notifications import notification_views
+from ..schemas import UserView
 from ..sql_app.crud import YandexConference, YandexCalendar, User
 from ..sql_app.database import get_conn
 from ..notifications.worker import *
 
 # dramatiq app.notifications.tasks
-
-logging.basicConfig(level=Conf.LOG_LEVEL)
+logging.basicConfig(
+    level=Conf.LOG_LEVEL,
+    format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+    datefmt='%d-%m-%Y %H:%M:%S'
+)
 
 
 async def task0():
@@ -35,42 +40,44 @@ async def task0():
 
 # task-daily
 @actor(max_retries=1)
-async def task1(mm_user_id: str, hour: int, minute: int):
+async def task1(session: str, hour: int, minute: int):
     """daily_notification_job"""
-    logging.debug('daily_notification_job(%s, %s, %s)', mm_user_id, hour, minute)
-    await daily_notification_job(mm_user_id, hour, minute)
+    logging.debug('daily_notification_job(%s, %s, %s)', session, hour, minute)
+    await daily_notification_job(session, hour, minute)
 
 
 # task-next-conf
 @actor(max_retries=1)
-async def task2(mm_user_id: str, uid: str, dtstart: str):
+async def task2(session: str, uid: str, dtstart: str):
     """notify_next_conference_job"""
-    logging.debug('notify_next_conference_job(%s, %s, %s)', mm_user_id, uid, dtstart)
-    await notify_next_conference_job(mm_user_id, uid, dtstart)
+    logging.debug('notify_next_conference_job(%s, %s, %s)', session, uid, dtstart)
+    await notify_next_conference_job(session, uid, dtstart)
 
 
 @actor(max_retries=1)
-async def task3(mm_user_id: str, expires_at: str):
+async def task3(session: str, expires_at: str):
     """change_status_job"""
-    logging.debug('change_status_job(%s, %s)', mm_user_id, expires_at)
-    await change_status_job(mm_user_id, expires_at)
+    logging.debug('change_status_job(%s, %s)', session, expires_at)
+    await change_status_job(session, expires_at)
 
 
 @actor(max_retries=1)
-async def task4(mm_user_id: str, latest_custom_status: str):
+async def task4(session: str, latest_custom_status: str):
     """return_latest_custom_status_job"""
-    logging.debug('return_latest_custom_status_job(%s, %s)', mm_user_id, latest_custom_status)
-    await return_latest_custom_status_job(mm_user_id, latest_custom_status)
+    logging.debug('return_latest_custom_status_job(%s, %s)', session, latest_custom_status)
+    await return_latest_custom_status_job(session, latest_custom_status)
 
 
-async def _load_changes_events(conn: AsyncConnection, principal: Principal, user: Row, get_user_cal: Row):
+async def _load_changes_events(conn: AsyncConnection, principal: Principal, user: UserView, get_user_cal: Row):
     not_sync_cal = await caldav_calendar_by_cal_id(principal, cal_id=get_user_cal.cal_id)
 
     # get sync_token from db
 
     try:
 
-        sync_cal = await caldav_objects_by_sync_token(not_sync_cal, sync_token=get_user_cal.sync_token, load_objects=True)
+        sync_cal = await caldav_objects_by_sync_token(
+            not_sync_cal, sync_token=get_user_cal.sync_token, load_objects=True
+        )
 
     except caldav_errors.NotFoundError as exp:
         await YandexCalendar.remove_cal(conn, get_user_cal.cal_id)
@@ -97,9 +104,9 @@ async def check_events_job():
                     await _load_changes_events(conn, principal, user, get_user_cal)
 
 
-async def return_latest_custom_status_job(mm_user_id: str, latest_custom_status: str):
+async def return_latest_custom_status_job(session: str, latest_custom_status: str):
     async with get_conn() as conn:
-        user = await User.get_user(conn, mm_user_id)
+        user = await User.get_user_by_session(conn, session)
 
         if not user:
             return
@@ -108,23 +115,23 @@ async def return_latest_custom_status_job(mm_user_id: str, latest_custom_status:
             return
 
         else:
-            await User.update_user(conn, mm_user_id, status=None)
+            await User.update_user(conn, user.mm_user_id, status=None)
 
             options = json.loads(latest_custom_status)
 
-            asyncio.create_task(update_custom_status(mm_user_id, options))
+            asyncio.create_task(update_custom_status(user.mm_user_id, options))
 
 
-async def change_status_job(mm_user_id: str, expires_at: str):
+async def change_status_job(session: str, expires_at: str):
     """{'props': {'customStatus': '{"emoji":"grinning","text":"","duration":"date_and_time","expires_at":"2023-08-16T10:30:00Z"}'}'"""
 
     async with get_conn() as conn:
-        user = await User.get_user(conn, mm_user_id)
+        user = await User.get_user_by_session(conn, session)
 
         if not user:
             return
 
-        mm_user = await get_user_by_mm_user_id(mm_user_id)
+        mm_user = await get_user_by_mm_user_id(user.mm_user_id)
 
         run_date = datetime.fromisoformat(expires_at)
         delay = get_delay_with_dtstart(run_date)
@@ -154,30 +161,30 @@ async def change_status_job(mm_user_id: str, expires_at: str):
                 js_current_options = json.dumps(current_options)
 
                 if user.status != js_current_options:
-                    await User.update_user(conn, mm_user_id, status=js_current_options)
+                    await User.update_user(conn, user.mm_user_id, status=js_current_options)
 
-                task4.send_with_options(args=(mm_user_id, js_current_options), delay=delay)
+                task4.send_with_options(args=(session, js_current_options), delay=delay)
 
-                asyncio.create_task(update_custom_status(mm_user_id, new_options))
+                asyncio.create_task(update_custom_status(user.mm_user_id, new_options))
 
             elif iso1_gt_iso2(current_options['expires_at'], expires_at) and current_options['emoji'] != 'calendar':
 
                 js_current_options = json.dumps(current_options)
 
                 if user.status != js_current_options:
-                    await User.update_user(conn, mm_user_id, status=js_current_options)
+                    await User.update_user(conn, user.mm_user_id, status=js_current_options)
 
-                task4.send_with_options(args=(mm_user_id, js_current_options), delay=delay)
+                task4.send_with_options(args=(session, js_current_options), delay=delay)
 
-                asyncio.create_task(update_custom_status(mm_user_id, new_options))
+                asyncio.create_task(update_custom_status(user.mm_user_id, new_options))
 
         if current_options.get('expires_at') is None or iso1_gt_iso2(expires_at, current_options['expires_at']):
-            asyncio.create_task(update_custom_status(mm_user_id, new_options))
+            asyncio.create_task(update_custom_status(user.mm_user_id, new_options))
 
 
-async def notify_next_conference_job(mm_user_id: str, uid: str, dtstart: str) -> None:
+async def notify_next_conference_job(session: str, uid: str, dtstart: str) -> None:
     async with get_conn() as conn:
-        user = await User.get_user(conn, mm_user_id)
+        user = await User.get_user_by_session(conn, session)
 
         if not user:
             return
@@ -185,7 +192,7 @@ async def notify_next_conference_job(mm_user_id: str, uid: str, dtstart: str) ->
         principal = await take_principal(user.login, user.token)
 
         if type(principal) is dict:
-            await User.remove_user(conn, mm_user_id)
+            await User.remove_user(conn, user.mm_user_id)
 
             return
 
@@ -234,17 +241,17 @@ async def notify_next_conference_job(mm_user_id: str, uid: str, dtstart: str) ->
                                 "thumb_url": static_file('ya.png'),
                             }
                         ]}
-                    asyncio.create_task(send_msg_client(mm_user_id, msg, props))
+                    asyncio.create_task(send_msg_client(user.mm_user_id, msg, props))
 
-                if user.ch_stat and not conference_all_day(conf_obj):
+                if user.ch_stat:
                     delay = get_delay_with_dtstart(datetime.fromisoformat(conf_obj.dtstart))
 
-                    task3.send_with_options(args=(mm_user_id, conf_obj.dtend), delay=delay)
+                    task3.send_with_options(args=(session, conf_obj.dtend), delay=delay)
 
 
-async def daily_notification_job(mm_user_id: str, hour: int, minute: int):
+async def daily_notification_job(session: str, hour: int, minute: int):
     async with get_conn() as conn:
-        user = await User.get_user(conn, mm_user_id)
+        user = await User.get_user_by_session(conn, session)
 
         if not user:
             return
@@ -252,14 +259,14 @@ async def daily_notification_job(mm_user_id: str, hour: int, minute: int):
         principal = await take_principal(user.login, user.token)
 
         if type(principal) is dict:
-            await User.remove_user(conn, mm_user_id)
+            await User.remove_user(conn, user.mm_user_id)
             return
 
-        if not await YandexCalendar.get_first_cal(conn, mm_user_id):
+        if not await YandexCalendar.get_first_cal(conn, user.mm_user_id):
             return
 
         exists_db_server_cals = await caldav_api.check_exist_calendars_by_cal_id(
-            conn, principal, YandexCalendar.get_cals(conn, mm_user_id)
+            conn, principal, YandexCalendar.get_cals(conn, user.mm_user_id)
         )
 
         if type(exists_db_server_cals) is dict:
@@ -280,15 +287,15 @@ async def daily_notification_job(mm_user_id: str, hour: int, minute: int):
                 }
             ]}
 
-        asyncio.create_task(send_msg_client(mm_user_id, msg, props))
+        asyncio.create_task(send_msg_client(user.mm_user_id, msg, props))
 
         delay = get_delay_daily(hour, minute)
-        task1.send_with_options(args=(mm_user_id, hour, minute), delay=delay)
+        task1.send_with_options(args=(session, hour, minute), delay=delay)
 
 
 async def load_updated_added_deleted_events(
         conn: AsyncConnection,
-        user: Row,
+        user: UserView,
         sync_cal: SyncCal,
         notify=True
 ):
@@ -393,6 +400,9 @@ async def load_updated_added_deleted_events(
             # else conference is exists
             else:
                 continue
+            # if conference all day, then not notify and not change status
+            if conference_all_day(conf):
+                continue
 
             # new conference + user e_c or ch_stat + start date > now + 15 min
             if Conf.TESTING:
@@ -400,10 +410,10 @@ async def load_updated_added_deleted_events(
                     start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(seconds=10)  # debug
 
                     delay = get_delay_with_dtstart(start_job)
-                    task2.send_with_options(args=(mm_user_id, conf.uid, conf.dtstart), delay=delay)
+                    task2.send_with_options(args=(user.session, conf.uid, conf.dtstart), delay=delay)
             else:
                 if (user.e_c or user.ch_stat) and caldav_filters.start_gt_15_min(conf.dtstart):  # production
                     start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(minutes=10)  # production
 
                     delay = get_delay_with_dtstart(start_job)
-                    task2.send_with_options(args=(mm_user_id, conf.uid, conf.dtstart), delay=delay)
+                    task2.send_with_options(args=(user.session, conf.uid, conf.dtstart), delay=delay)

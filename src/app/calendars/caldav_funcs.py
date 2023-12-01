@@ -1,4 +1,4 @@
-import caldav, asyncio
+import caldav
 from caldav import Principal
 import caldav.lib.error as caldav_errors
 

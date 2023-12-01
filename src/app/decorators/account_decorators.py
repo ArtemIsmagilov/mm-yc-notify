@@ -1,12 +1,13 @@
 from ..dict_responses import already_exists_integration, unauth_integration
+from ..schemas import UserView
 from ..sql_app.database import get_conn
 from ..sql_app.crud import User
 from ..calendars.caldav_funcs import take_principal
+
 from functools import wraps
 import logging, traceback
 from quart import request
 from httpx import HTTPError
-from sqlalchemy.engine import Row
 
 
 def auth_required(view):
@@ -20,8 +21,18 @@ def auth_required(view):
             if not user:
                 return unauth_integration(mm_username)
             else:
+                user_view = UserView(
+                    user.mm_user_id,
+                    user.login,
+                    user.token,
+                    user.timezone,
+                    user.e_c,
+                    user.ch_stat,
+                    user.session,
+                    user.status
+                )
+                kwargs.update(conn=conn, user=user_view)
 
-                kwargs.update(conn=conn, user=user)
                 return await view(*args, **kwargs)
 
     return wrapped_view
@@ -46,7 +57,7 @@ def required_account_does_not_exist(view):
 
 def dependency_principal(func):
     @wraps(func)
-    async def wrapped_funcs(user: Row, *args, **kwargs):
+    async def wrapped_funcs(user: UserView, *args, **kwargs):
         response = await take_principal(user.login, user.token)
 
         if type(response) is dict:

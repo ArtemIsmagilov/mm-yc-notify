@@ -1,6 +1,6 @@
 from ..connections import connection_handlers
 
-from quart import Blueprint, request
+from quart import Blueprint
 
 bp = Blueprint('connections', __name__, url_prefix='/connections')
 

@@ -16,6 +16,7 @@ from sqlalchemy.engine import Row
 import asyncio
 from typing import AsyncGenerator, Sequence
 
+from ..schemas import UserView
 from ..sql_app.crud import YandexCalendar
 
 
@@ -23,7 +24,7 @@ from ..sql_app.crud import YandexCalendar
 @dependency_principal
 async def get_a_week(
         conn: AsyncConnection,
-        user: Row,
+        user: UserView,
         principal: Principal,
 ) -> dict:
     data = await request.json
@@ -41,7 +42,7 @@ async def get_a_week(
 @dependency_principal
 async def get_a_month(
         conn: AsyncConnection,
-        user: Row,
+        user: UserView,
         principal: Principal,
 ) -> dict:
     data = await request.json
@@ -59,7 +60,7 @@ async def get_a_month(
 @dependency_principal
 async def from_to(
         conn: AsyncConnection,
-        user: Row,
+        user: UserView,
         principal: Principal,
 ) -> dict:
     data = await request.json
@@ -95,7 +96,7 @@ async def from_to(
 @dependency_principal
 async def current(
         conn: AsyncConnection,
-        user: Row,
+        user: UserView,
         principal: Principal,
 ) -> dict:
     data = await request.json
@@ -124,7 +125,7 @@ async def current(
 @dependency_principal
 async def today(
         conn: AsyncConnection,
-        user: Row,
+        user: UserView,
         principal: Principal,
 ) -> dict:
     data = await request.json
@@ -139,7 +140,7 @@ async def today(
 
 async def daily_notification(
         principal: Principal,
-        user: Row,
+        user: UserView,
         exist_calendars: Sequence[Calendar]
 ) -> dict:
     start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)

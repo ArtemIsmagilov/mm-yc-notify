@@ -70,14 +70,14 @@ def is_disable_integration(mm_username):
 def is_enable_scheduler(mm_username: str):
     return {
         'type': 'ok',
-        'text': '# %s, your scheduler is enable :).' % mm_username,
+        'text': '# @%s, your scheduler is enable :).' % mm_username,
     }
 
 
 def is_disable_scheduler(mm_username: str):
     return {
         'type': 'ok',
-        'text': '# %s, you don\'t have scheduler notifications :(.' % mm_username,
+        'text': '# @%s, you don\'t have scheduler notifications :(.' % mm_username,
     }
 
 
@@ -141,4 +141,11 @@ def success_ok(mm_username: str):
     return {
         'type': 'ok',
         'text': '# Ok, @%s.' % mm_username
+    }
+
+
+def no_conferences():
+    return {
+        'type': 'ok',
+        'text': 'Today you don\'t have conferences',
     }

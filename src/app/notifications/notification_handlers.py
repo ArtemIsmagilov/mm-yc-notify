@@ -5,12 +5,12 @@ from ..async_wraps.async_wrap_caldav import caldav_all_calendars
 from ..constants import EXPAND_DICT, TIMEs
 from ..converters import client_id_calendar
 from ..decorators.account_decorators import dependency_principal, auth_required
+from ..schemas import UserView
 from ..sql_app.crud import YandexCalendar
 
 import asyncio
 from typing import Generator
 from quart import render_template, url_for, request
-from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
 from caldav import Calendar, Principal
 
@@ -19,7 +19,7 @@ from caldav import Calendar, Principal
 @dependency_principal
 async def create_notification(
         conn: AsyncConnection,
-        user: Row,
+        user: UserView,
         principal: Principal,
 ) -> dict:
     data = await request.json
@@ -96,7 +96,7 @@ async def create_notification(
 @dependency_principal
 async def continue_create_notification(
         conn: AsyncConnection,
-        user: Row,
+        user: UserView,
         principal: Principal,
 ) -> dict:
     data = await request.json
@@ -134,7 +134,7 @@ async def continue_create_notification(
     }
 
 
-async def really_update_notification():
+async def really_update_notification() -> dict:
     data = await request.json
     mm_username = data['context']['acting_user']['username']
 
@@ -142,7 +142,7 @@ async def really_update_notification():
         "type": "form",
         "form": {
             "title": "Update scheduler?",
-            "header": f'**{mm_username}**, are you sure, what need update your scheduler?',
+            "header": '**%s**, are you sure, what need update your scheduler?' % mm_username,
             "icon": static_file('cal.png'),
             "submit": {
                 "path": url_for('notifications.update_notification'),
@@ -156,7 +156,7 @@ async def really_update_notification():
 @dependency_principal
 async def update_notification(
         conn: AsyncConnection,
-        user: Row,
+        user: UserView,
         principal: Principal,
 ) -> dict:
     data = await request.json
@@ -233,9 +233,9 @@ async def update_notification(
 @dependency_principal
 async def continue_update_notification(
         conn: AsyncConnection,
-        user: Row,
+        user: UserView,
         principal: Principal,
-):
+) -> dict:
     await YandexCalendar.remove_cals(conn, user.mm_user_id)
     # copy ->  continue_create_notification
     data = await request.json
@@ -252,11 +252,8 @@ async def continue_update_notification(
     e_c = values['Notification']
     ch_stat = values['Status']
 
-    if await YandexCalendar.get_first_cal(conn, mm_user_id):
-        return dict_responses.is_exists_scheduler(mm_username)
-
     asyncio.create_task(
-        notification_backgrounds.bg_continue_create_notification(user, principal, cals_form, daily_clock, e_c, ch_stat)
+        notification_backgrounds.bg_continue_update_notification(user, principal, cals_form, daily_clock, e_c, ch_stat)
     )
 
     return {
@@ -274,7 +271,7 @@ async def continue_update_notification(
     # copy ->  continue_create_notification
 
 
-async def really_delete_notification():
+async def really_delete_notification() -> dict:
     data = await request.json
     mm_username = data['context']['acting_user']['username']
 
@@ -282,7 +279,7 @@ async def really_delete_notification():
         "type": "form",
         "form": {
             "title": "Delete scheduler?",
-            "header": f'**{mm_username}**, are you sure, what need delete scheduler?',
+            "header": '**%s**, are you sure, what need delete scheduler?' % mm_username,
             "icon": static_file('cal.png'),
             "submit": {
                 "path": url_for('notifications.delete_notification'),
@@ -295,7 +292,7 @@ async def really_delete_notification():
 @auth_required
 async def delete_notification(
         conn: AsyncConnection,
-        user: Row,
+        user: UserView,
 ) -> dict:
     data = await request.json
     context = data['context']

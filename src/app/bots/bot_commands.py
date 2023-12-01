@@ -14,7 +14,7 @@ if Conf.MM_APP_TOKEN:
 
 
 @bot_error
-async def send_msg_client(mm_user_id: str, msg: str, props=None):
+async def send_msg_client(mm_user_id: str, msg: str, props=None) -> dict:
     bot_create_direct_channel = await bot.channels.create_direct_channel([mm_user_id, bot.client.userid])
     data = {"channel_id": bot_create_direct_channel["id"], "message": msg}
 
@@ -25,7 +25,7 @@ async def send_msg_client(mm_user_id: str, msg: str, props=None):
 
 
 @bot_error
-async def send_ephemeral_msg_client(mm_user_id: str, channel_id: str, msg: str, props=None):
+async def send_ephemeral_msg_client(mm_user_id: str, channel_id: str, msg: str, props=None) -> dict:
     data = {"user_id": mm_user_id, "post": {"channel_id": channel_id, "message": msg}}
 
     if props:
@@ -35,20 +35,20 @@ async def send_ephemeral_msg_client(mm_user_id: str, channel_id: str, msg: str, 
 
 
 @bot_error
-async def update_custom_status(mm_user_id: str, new_options: dict):
+async def update_custom_status(mm_user_id: str, new_options: dict) -> dict:
     return await bot.status.update_user_custom_status(mm_user_id, new_options)
 
 
 @bot_error
-async def get_user_by_username(username: str):
+async def get_user_by_username(username: str) -> dict:
     return await bot.users.get_user_by_username(username)
 
 
 @bot_error
-async def get_user_by_mm_user_id(mm_user_id: str):
+async def get_user_by_mm_user_id(mm_user_id: str) -> dict:
     return await bot.users.get_user(mm_user_id)
 
 
 @bot_error
-async def create_user(options: dict):
+async def create_user(options: dict) -> dict:
     return await bot.users.create_user(options)

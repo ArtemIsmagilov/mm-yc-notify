@@ -2,6 +2,7 @@ import dramatiq
 from dramatiq.brokers.rabbitmq import RabbitmqBroker
 from dramatiq.middleware.asyncio import AsyncIO
 from dramatiq.middleware.prometheus import Prometheus
+
 from settings import Conf
 
 

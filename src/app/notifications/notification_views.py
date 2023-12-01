@@ -1,3 +1,4 @@
+from .. import dict_responses
 from ..calendars import caldav_searchers
 from ..calendars.conference import Conference
 
@@ -15,18 +16,12 @@ async def daily_notify_view(
         dates: tuple[datetime, datetime]
 ) -> dict:
     if not calendars:
-        return {
-            'type': 'error',
-            'text': 'You haven\'t calendars on CalDAV server.'
-        }
+        return dict_responses.no_calendars_on_server()
 
     represents = [r async for r in caldav_searchers.find_conferences_in_some_cals(calendars, dates)]
 
     if not represents:
-        return {
-            'type': 'ok',
-            'text': 'Today you don\'t have conferences',
-        }
+        return dict_responses.no_conferences()
 
     tm = env.get_template(template)
     text = await tm.render_async(represents=represents)

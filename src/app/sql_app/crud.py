@@ -2,7 +2,6 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy.engine import Row
 from sqlalchemy import select
-
 from ..sql_app.models import user_account_table, yandex_calendar_table, yandex_conference_table
 
 
@@ -17,6 +16,7 @@ class User:
             timezone: str,
             e_c: bool,
             ch_stat: bool,
+            session: str,
             status: str = None,
     ):
         await conn.execute(
@@ -29,6 +29,7 @@ class User:
                 timezone=timezone,
                 e_c=e_c,
                 ch_stat=ch_stat,
+                session=session,
                 status=status,
             )
         )
@@ -36,17 +37,23 @@ class User:
     @classmethod
     async def get_user(cls, conn: AsyncConnection, mm_user_id: str) -> Row:
         result = await conn.execute(
-            select(user_account_table.c['mm_user_id', 'login', 'token', 'timezone', 'e_c', 'ch_stat', 'status'])
+            select(user_account_table.c)
             .where(user_account_table.c.mm_user_id == mm_user_id)
+        )
+        return result.first()
+
+    @classmethod
+    async def get_user_by_session(cls, conn: AsyncConnection, session: str) -> Row:
+        result = await conn.execute(
+            select(user_account_table.c)
+            .where(user_account_table.c.session == session)
         )
         return result.first()
 
     @classmethod
     async def all_users(cls, conn: AsyncConnection) -> AsyncGenerator[Row, None]:
         result = await conn.execute(
-            select(
-                user_account_table.c['mm_user_id', 'login', 'token', 'token', 'timezone', 'e_c', 'ch_stat', 'status']
-            )
+            select(user_account_table.c)
         )
         for row in result:
             yield row
@@ -97,7 +104,7 @@ class YandexCalendar:
     @classmethod
     async def get_cal(cls, conn: AsyncConnection, cal_id: str) -> Row:
         result = await conn.execute(
-            select(yandex_calendar_table.c['mm_user_id', 'cal_id', 'sync_token'])
+            select(yandex_calendar_table.c)
             .where(yandex_calendar_table.c.cal_id == cal_id)
         )
         return result.first()
@@ -105,7 +112,7 @@ class YandexCalendar:
     @classmethod
     async def get_cals(cls, conn: AsyncConnection, mm_user_id: str) -> AsyncGenerator[Row, None]:
         result = await conn.execute(
-            select(yandex_calendar_table.c['mm_user_id', 'cal_id', 'sync_token'])
+            select(yandex_calendar_table.c)
             .where(yandex_calendar_table.c.mm_user_id == mm_user_id)
         )
         for row in result:
@@ -114,7 +121,7 @@ class YandexCalendar:
     @classmethod
     async def get_first_cal(cls, conn: AsyncConnection, mm_user_id: str) -> Row:
         result = await conn.execute(
-            select(yandex_calendar_table.c['mm_user_id', 'cal_id', 'sync_token'])
+            select(yandex_calendar_table.c)
             .where(yandex_calendar_table.c.mm_user_id == mm_user_id)
             .limit(1)
         )
