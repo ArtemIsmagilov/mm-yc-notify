@@ -34,7 +34,7 @@ def already_exists_integration(mm_username: str):
 def unauth_integration(mm_username: str):
     return {
         'type': 'error',
-        'text': '# %s, your haven\'t integration with yandex-calendar. First, to connect.' % mm_username
+        'text': '# @%s, your haven\'t integration with yandex-calendar. First, to connect.' % mm_username
     }
 
 
@@ -105,7 +105,7 @@ def success_remove_scheduler(mm_username: str):
 def wrong_format_dates_from_to(mm_username: str, dtstart: str, dtend: str):
     return {
         'type': 'error',
-        'text': '# %s, wrong format from date and to date: %s, %s.' % (mm_username, dtstart, dtend)
+        'text': '# @%s, wrong format from date and to date: %s, %s.' % (mm_username, dtstart, dtend)
     }
 
 
@@ -144,7 +144,7 @@ def success_ok(mm_username: str):
     }
 
 
-def no_conferences():
+def daily_no_conferences():
     return {
         'type': 'ok',
         'text': 'Today you don\'t have conferences',

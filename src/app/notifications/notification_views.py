@@ -21,7 +21,7 @@ async def daily_notify_view(
     represents = [r async for r in caldav_searchers.find_conferences_in_some_cals(calendars, dates)]
 
     if not represents:
-        return dict_responses.no_conferences()
+        return dict_responses.daily_no_conferences()
 
     tm = env.get_template(template)
     text = await tm.render_async(represents=represents)

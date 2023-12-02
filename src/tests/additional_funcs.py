@@ -1,3 +1,5 @@
+from secrets import token_hex
+
 from app.sql_app.crud import User, YandexCalendar
 from app.sql_app.database import get_conn
 from settings import Conf
@@ -14,7 +16,8 @@ async def increase_user():
             Conf.test_client_ya_token,
             Conf.test_client_ya_timezone,
             e_c=False,
-            ch_stat=False
+            ch_stat=False,
+            session=token_hex(16)
         )
 
 
@@ -39,7 +42,7 @@ async def decrease_calendar(cal_id: str):
         await YandexCalendar.remove_cal(conn, cal_id)
 
 
-async def modify_account(**kwargs):
+async def modify_user(**kwargs):
     async with get_conn() as conn:
         await User.update_user(
             conn,

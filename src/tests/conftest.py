@@ -1,12 +1,10 @@
-import asyncio, pytest
+import asyncio, pytest, uvloop
 from caldav import Principal
-from dramatiq import Worker
 from httpx import HTTPError
 
-from app.bots.bot_commands import get_user_by_username, create_user
-from app.calendars import caldav_api
+from app.bots.bot_commands import get_user_by_username, create_user, bot
 from app.calendars.caldav_funcs import take_principal
-from app.notifications.tasks import broker
+from app.async_wraps.async_wrap_caldav import caldav_calendar_by_name, caldav_create_calendar
 import settings
 
 # init testing environments
@@ -16,7 +14,7 @@ from app import create_app
 
 
 async def init_scope():
-    global test_user, mm_user_id, test_principal, test_calendar1, test_calendar2
+    global test_user, mm_user_id, channel_id, test_principal, test_calendar1, test_calendar2, test_context
 
     # create test user, if it doesn't exist
     test_user = await get_user_by_username(username=Conf.test_client_username)
@@ -32,17 +30,23 @@ async def init_scope():
         })
 
     mm_user_id = test_user['id']
+    response = await bot.channels.create_direct_channel([mm_user_id, bot.client.userid])
+    channel_id = response['id']
+    test_context = {'context': {'acting_user': {'id': mm_user_id, 'username': Conf.test_client_username},
+                                'channel': {'id': channel_id},
+                                }
+                    }
 
     test_principal = await take_principal(Conf.test_client_ya_login, Conf.test_client_ya_token)
     assert type(test_principal) is Principal
 
-    test_calendar1 = await caldav_api.get_calendar_by_name(test_principal, Conf.test_client_calendar_name1)
+    test_calendar1 = await caldav_calendar_by_name(test_principal, Conf.test_client_calendar_name1)
     if type(test_calendar1) is dict:
-        test_calendar1 = await caldav_api.create_calendar(test_principal, name=Conf.test_client_calendar_name1)
+        test_calendar1 = await caldav_create_calendar(test_principal, name=Conf.test_client_calendar_name1)
 
-    test_calendar2 = await caldav_api.get_calendar_by_name(test_principal, Conf.test_client_calendar_name2)
+    test_calendar2 = await caldav_calendar_by_name(test_principal, Conf.test_client_calendar_name2)
     if type(test_calendar2) is dict:
-        test_calendar2 = await caldav_api.create_calendar(test_principal, name=Conf.test_client_calendar_name2)
+        test_calendar2 = await caldav_create_calendar(test_principal, name=Conf.test_client_calendar_name2)
 
 
 if Conf.TESTING:
@@ -64,3 +68,8 @@ def client(app):
 @pytest.fixture  # (scope="session")
 def runner(app):
     return app.test_cli_runner()
+
+
+@pytest.fixture(scope="session")
+def event_loop_policy():
+    return uvloop.EventLoopPolicy()
