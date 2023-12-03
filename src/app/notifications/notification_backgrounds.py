@@ -63,7 +63,7 @@ async def bg_continue_create_notification(
         ), return_exceptions=True)
 
     delay = get_delay_daily(h, m)
-    tasks.task1.send_with_options(args=(user.session, h, m), delay=delay)
+    await tasks.task1.kicker().with_labels(delay=delay).kiq(user.session, h, m)
 
 
 @app_error

@@ -10,7 +10,8 @@ python-dotenv==1.0.0
 SQLAlchemy==2.0.23
 pytest==7.4.3
 aiohttp==3.9.1
-dramatiq[rabbitmq]==1.15.0
 APScheduler==4.0.0a4
-pytest-asyncio==0.23.0
+pytest-asyncio==0.23.1
 coverage==7.3.2
+taskiq==0.10.4
+taskiq-aio-pika==0.4.0

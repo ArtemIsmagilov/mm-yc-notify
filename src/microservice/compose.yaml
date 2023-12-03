@@ -42,7 +42,7 @@ services:
       bash -c "pip install -r requirements.txt
       && quart init-db
       && (python -m app.notifications.task0_scheduler > /dev/stdout 2>&1 &)
-      && (dramatiq app.notifications.tasks > /dev/stdout 2>&1 &)
+      && (taskiq worker app.notifications.worker:broker --fs-discover > /dev/stdout 2>&1 &)
       && bash run-server.bash
       "
     depends_on:

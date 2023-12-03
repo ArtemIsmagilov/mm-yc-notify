@@ -1,6 +1,5 @@
 import asyncio, json, logging
 from datetime import timedelta, datetime
-from dramatiq import actor
 import caldav.lib.error as caldav_errors
 from caldav import SynchronizableCalendarObjectCollection as SyncCal, Principal
 from sqlalchemy.engine import Row
@@ -22,14 +21,7 @@ from ..notifications import notification_views
 from ..schemas import UserView
 from ..sql_app.crud import YandexConference, YandexCalendar, User
 from ..sql_app.database import get_conn
-from ..notifications.worker import *
-
-# dramatiq app.notifications.tasks
-logging.basicConfig(
-    level=Conf.LOG_LEVEL,
-    format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
-    datefmt='%d-%m-%Y %H:%M:%S'
-)
+from .worker import broker
 
 
 async def task0():
@@ -38,30 +30,28 @@ async def task0():
     await check_events_job()
 
 
-# task-daily
-@actor(max_retries=1)
+@broker.task
 async def task1(session: str, hour: int, minute: int):
     """daily_notification_job"""
     logging.debug('daily_notification_job(%s, %s, %s)', session, hour, minute)
     await daily_notification_job(session, hour, minute)
 
 
-# task-next-conf
-@actor(max_retries=1)
+@broker.task
 async def task2(session: str, uid: str, dtstart: str):
     """notify_next_conference_job"""
     logging.debug('notify_next_conference_job(%s, %s, %s)', session, uid, dtstart)
     await notify_next_conference_job(session, uid, dtstart)
 
 
-@actor(max_retries=1)
+@broker.task
 async def task3(session: str, expires_at: str):
     """change_status_job"""
     logging.debug('change_status_job(%s, %s)', session, expires_at)
     await change_status_job(session, expires_at)
 
 
-@actor(max_retries=1)
+@broker.task
 async def task4(session: str, latest_custom_status: str):
     """return_latest_custom_status_job"""
     logging.debug('return_latest_custom_status_job(%s, %s)', session, latest_custom_status)
@@ -163,7 +153,7 @@ async def change_status_job(session: str, expires_at: str):
                 if user.status != js_current_options:
                     await User.update_user(conn, user.mm_user_id, status=js_current_options)
 
-                task4.send_with_options(args=(session, js_current_options), delay=delay)
+                await task4.kicker().with_labels(delay=delay).kiq(session, js_current_options)
 
                 asyncio.create_task(update_custom_status(user.mm_user_id, new_options))
 
@@ -174,7 +164,7 @@ async def change_status_job(session: str, expires_at: str):
                 if user.status != js_current_options:
                     await User.update_user(conn, user.mm_user_id, status=js_current_options)
 
-                task4.send_with_options(args=(session, js_current_options), delay=delay)
+                await task4.kicker().with_labels(delay=delay).kiq(session, js_current_options)
 
                 asyncio.create_task(update_custom_status(user.mm_user_id, new_options))
 
@@ -246,7 +236,7 @@ async def notify_next_conference_job(session: str, uid: str, dtstart: str) -> No
                 if user.ch_stat:
                     delay = get_delay_with_dtstart(datetime.fromisoformat(conf_obj.dtstart))
 
-                    task3.send_with_options(args=(session, conf_obj.dtend), delay=delay)
+                    await task3.kicker().with_labels(delay=delay).kiq(session, conf_obj.dtend)
 
 
 async def daily_notification_job(session: str, hour: int, minute: int):
@@ -290,7 +280,7 @@ async def daily_notification_job(session: str, hour: int, minute: int):
         asyncio.create_task(send_msg_client(user.mm_user_id, msg, props))
 
         delay = get_delay_daily(hour, minute)
-        task1.send_with_options(args=(session, hour, minute), delay=delay)
+        await task1.kicker().with_labels(delay=delay).kiq(session, hour, minute)
 
 
 async def load_updated_added_deleted_events(
@@ -420,10 +410,10 @@ async def load_updated_added_deleted_events(
                     start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(seconds=10)  # debug
 
                     delay = get_delay_with_dtstart(start_job)
-                    task2.send_with_options(args=(user.session, conf.uid, conf.dtstart), delay=delay)
+                    await task2.kicker().with_labels(delay=delay).kiq(user.session, conf.uid, conf.dtstart)
             else:
                 if (user.e_c or user.ch_stat) and caldav_filters.start_gt_15_min(conf.dtstart):  # production
                     start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(minutes=10)  # production
 
                     delay = get_delay_with_dtstart(start_job)
-                    task2.send_with_options(args=(user.session, conf.uid, conf.dtstart), delay=delay)
+                    await task2.kicker().with_labels(delay=delay).kiq(user.session, conf.uid, conf.dtstart)
