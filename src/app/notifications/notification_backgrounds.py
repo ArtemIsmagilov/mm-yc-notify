@@ -86,3 +86,4 @@ async def bg_remove_notification(
 ):
     async with get_conn() as conn:
         await YandexCalendar.remove_cals(conn, mm_user_id)
+        await User.update_user(conn, mm_user_id, session=token_hex(16))
