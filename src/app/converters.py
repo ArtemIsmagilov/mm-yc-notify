@@ -95,6 +95,10 @@ def equal_conferences(conf, other_conf):
     return True
 
 
+def past_conference(conf: Conference | Row):
+    return datetime.fromisoformat(conf.dtend) < datetime.now(UTC)
+
+
 def create_table_md(table: dict) -> str:
     header, delimiter, body = " | ".join(table.keys()), "-|" * len(table), " | ".join(table.values())
 

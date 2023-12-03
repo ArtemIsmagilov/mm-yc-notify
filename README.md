@@ -407,13 +407,19 @@
    bash run-server.bash
    ```
 5. После проверки корректности работы всех компонентов добавляем логирование
-6. Запускаем докер файл и смотрим статистику
+6. Запускаем докер файл
    ```bash
    cd src/microsevice/ && sudo docker compose up -d
    ```
+   Cмотрим статистику
    ```bash
    sudo docker stats 
    ```
+   Смотрим логи
+   ```bash
+   sudo docker compose logs > output.txt
+   ```
+   
     
 
 ## Полезные ссылки

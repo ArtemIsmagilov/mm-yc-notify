@@ -3,7 +3,8 @@
 # 1. docker compose down/up rabbitmq
 # 2. docker compose down/up postgres
 # 3. quart init-db -c
-# 4. dramatiq app.notifications.tasks
+# 4. python -m app.notifications.task0_scheduler
+# 5. dramatiq app.notifications.tasks
 
 import asyncio, pytest
 from copy import deepcopy
@@ -26,7 +27,10 @@ class TestApp:
         data = test_context
         response = await client.post(post_fix, json=data)
 
+        json_response = await response.json
+
         assert response.status_code == 200
+        assert json_response['type'] == 'ok'
 
     async def test_ping(self, client, post_fix="/ping"):
         response = await client.post(post_fix)
@@ -129,6 +133,43 @@ class TestConnections:
         data = test_context
 
         response = await client.post(self.endpoint + post_fix, json=data)
+        json_response = await response.json
+
+        assert response.status_code == 200
+        assert json_response == dict_responses.success_ok(Conf.test_client_username)
+
+    @pytest.mark.parametrize('login,token,timezone', (
+            ('', '', ''),
+            ("fake_login", 'fake_token', 'UTC'),
+            ("invalid_data", 'invalid_data', 'UTC'),
+    ))
+    async def test_incorrect_principal_profile_account(self, client, login, token, timezone,
+                                                       post_fix="profile_account"):
+        await decrease_user()
+        data = test_context
+
+        await increase_user()
+        await modify_user(login=login, token=token, timezone=timezone)
+
+        response = await client.post(self.endpoint + post_fix, json=data)
+
+        await decrease_user()
+
+        json_response = await response.json
+
+        assert response.status_code == 200
+        assert json_response == dict_responses.success_ok(Conf.test_client_username)
+
+    async def test_incorrect_cal_ids_profile_account(self, client, post_fix="profile_account"):
+        data = test_context
+
+        await increase_user()
+        await increase_calendar('invalid_cal_id')
+
+        response = await client.post(self.endpoint + post_fix, json=data)
+
+        await decrease_user()
+
         json_response = await response.json
 
         assert response.status_code == 200

@@ -16,7 +16,7 @@ from ..calendars.caldav_funcs import take_principal
 from ..calendars.conference import Conference
 from ..converters import (
     get_dt_with_UTC_tz_from_iso, iso1_gt_iso2, dont_clear, create_conference_table, create_row_table, equal_conferences,
-    get_delay_with_dtstart, get_delay_daily, conference_all_day
+    get_delay_with_dtstart, get_delay_daily, conference_all_day, past_conference
 )
 from ..notifications import notification_views
 from ..schemas import UserView
@@ -314,6 +314,11 @@ async def load_updated_added_deleted_events(
             deleted_conf = await YandexConference.remove_conference(conn, uid)
 
             if deleted_conf:
+
+                # if conference was passed then skip
+                if past_conference(deleted_conf):
+                    continue
+
                 if notify is True:
                     was_table = create_row_table(deleted_conf)
 
@@ -330,6 +335,11 @@ async def load_updated_added_deleted_events(
         if i_event.get('X-TELEMOST-CONFERENCE'):
 
             conf = Conference(i_event, user.timezone)
+
+            # if conference was passed then skip
+            if past_conference(conf):
+                continue
+
             get_conf_user = await YandexConference.get_conference(conn, conf.uid)
 
             str_organizer = ', '.join(f'{k} - {v}' for k, v in conf.organizer.items()) if conf.organizer else None
