@@ -10,7 +10,7 @@ from ..notifications import notification_views
 from quart import request
 from caldav import Principal, Calendar, SynchronizableCalendarObjectCollection as SyncCal
 import caldav.lib.error as caldav_errs
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo
 from sqlalchemy.engine import Row
 import asyncio
@@ -30,8 +30,8 @@ async def get_a_week(
     data = await request.json
     mm_username = data['context']['acting_user']['username']
     channel_id = data['context']['channel']['id']
-    start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
-    end = start + timedelta(days=7)
+    start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0, microsecond=0)
+    end = start.replace(hour=23, minute=59, second=59) + timedelta(days=6)
 
     asyncio.create_task(run_in_background(user.mm_user_id, channel_id, principal, start, end))
 
@@ -48,8 +48,8 @@ async def get_a_month(
     data = await request.json
     mm_username = data['context']['acting_user']['username']
     channel_id = data['context']['channel']['id']
-    start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
-    end = start + timedelta(days=30)
+    start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0, microsecond=0)
+    end = start.replace(hour=23, minute=59, second=59) + timedelta(days=30)
 
     asyncio.create_task(run_in_background(user.mm_user_id, channel_id, principal, start, end))
 
@@ -130,7 +130,7 @@ async def today(
 ) -> dict:
     data = await request.json
     channel_id = data['context']['channel']['id']
-    start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
+    start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0, microsecond=0)
     end = start.replace(hour=23, minute=59, second=59)
 
     asyncio.create_task(run_in_background(user.mm_user_id, channel_id, principal, start, end))
@@ -143,7 +143,7 @@ async def daily_notification(
         user: UserView,
         exist_calendars: Sequence[Calendar]
 ) -> dict:
-    start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0)
+    start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0, microsecond=0)
     end = start.replace(hour=23, minute=59, second=59)
 
     return await notification_views.daily_notify_view(exist_calendars, 'get_daily.md', (start, end))

@@ -24,7 +24,7 @@ async def find_conferences_in_one_cal(
         dates: tuple[datetime, datetime],
 ) -> tuple[str, Sequence[Conference]] | None:
     timezone = str(dates[0].tzinfo)
-    events = await caldav_search(cal, comp_class=Event, start=dates[0], end=dates[1], sort_keys=("dtstart",))
+    events = await caldav_search(cal, event=True, start=dates[0], end=dates[1], sort_keys=("dtstart",))
     conferences = [
         Conference(e.icalendar_component, timezone) for e in events
         if e.icalendar_component.get("X-TELEMOST-CONFERENCE")
