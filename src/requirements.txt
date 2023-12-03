@@ -4,7 +4,7 @@ Quart==0.19.4
 gunicorn==21.2.0
 uvicorn[standard]==0.24.0
 icalendar==5.0.11
-mattermostautodriver==1.3.0
+mattermostautodriver==2.0.0
 asyncpg==0.29.0
 python-dotenv==1.0.0
 SQLAlchemy==2.0.23
