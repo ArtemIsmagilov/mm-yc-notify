@@ -2,11 +2,12 @@ from . import notification_backgrounds
 from .. import dict_responses
 from ..app_handlers import static_file
 from ..async_wraps.async_wrap_caldav import caldav_all_calendars
-from ..constants import EXPAND_DICT, TIMEs
+from ..constants import EXPAND_DICT
 from ..converters import client_id_calendar
 from ..decorators.account_decorators import dependency_principal, auth_required
 from ..schemas import UserView
 from ..sql_app.crud import YandexCalendar
+from ..validators import is_valid_clock
 
 import asyncio
 from typing import Generator
@@ -60,14 +61,12 @@ async def create_notification(
                 },
                 {
                     "name": "Time",
-                    "type": "static_select",
+                    "type": "text",
                     "label": "time",
                     "modal_label": 'Time',
-                    "options": TIMEs,
                     "is_required": True,
-                    "description": 'Select time for daily reminder',
-                    "value": {'label': '07:00', 'value': '07:00'},
-                    "hint": '[00:00-23.45]'
+                    "description": 'Input time for daily reminder',
+                    "hint": '[00:00-23:59]'
                 },
                 {
                     "name": "Notification",
@@ -108,7 +107,9 @@ async def continue_create_notification(
 
     cals_form = values['Calendars']
 
-    daily_clock = values['Time']['value']
+    daily_clock = is_valid_clock(values['Time'])
+    if type(daily_clock) is dict:
+        return daily_clock
 
     e_c = values['Notification']
     ch_stat = values['Status']
@@ -197,13 +198,11 @@ async def update_notification(
                 },
                 {
                     "name": "Time",
-                    "type": "static_select",
+                    "type": "text",
                     "label": "time",
                     "modal_label": 'Time',
-                    "options": TIMEs,
                     "is_required": True,
-                    "description": 'Select time for daily reminder',
-                    "value": {'label': '07:00', 'value': '07:00'},
+                    "description": 'Input time for daily reminder',
                     "hint": '[00:00-23.45]'
                 },
                 {
@@ -247,7 +246,9 @@ async def continue_update_notification(
 
     cals_form = values['Calendars']
 
-    daily_clock = values['Time']['value']
+    daily_clock = is_valid_clock(values['Time'])
+    if type(daily_clock) is dict:
+        return daily_clock
 
     e_c = values['Notification']
     ch_stat = values['Status']

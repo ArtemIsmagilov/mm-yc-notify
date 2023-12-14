@@ -2,7 +2,7 @@
 
 ### Info about upcoming conference
 
-### calendar name: {{ calendar_name }}
+### calendar name: {{ calendar_name | string }}
 
 {% if c.timezone %}* Timezone: {{ c.timezone }}{% endif %}
 {% if c.dtstart %}*  Start: {{ c.dtstart }}{% endif %}  

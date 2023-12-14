@@ -1,16 +1,16 @@
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from .calendar_backgrounds import run_in_background
-from ..async_wraps.async_wrap_caldav import caldav_calendar_by_cal_id, caldav_objects_by_sync_token
+from ..async_wraps.async_wrap_caldav import caldav_calendar_by_cal_id, caldav_search, caldav_get_supported_components
 from ..decorators.account_decorators import dependency_principal, auth_required
 from .. import dict_responses
 from ..dict_responses import success_ok
 from ..notifications import notification_views
 
 from quart import request
-from caldav import Principal, Calendar, SynchronizableCalendarObjectCollection as SyncCal
+from caldav import Principal, Calendar
 import caldav.lib.error as caldav_errs
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from sqlalchemy.engine import Row
 import asyncio
@@ -30,8 +30,9 @@ async def get_a_week(
     data = await request.json
     mm_username = data['context']['acting_user']['username']
     channel_id = data['context']['channel']['id']
-    start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0, microsecond=0)
-    end = start.replace(hour=23, minute=59, second=59) + timedelta(days=6)
+    dt_now = datetime.now(ZoneInfo(user.timezone))
+    start = datetime(year=dt_now.year, month=dt_now.month, day=dt_now.day, tzinfo=dt_now.tzinfo)
+    end = start + timedelta(days=6)
 
     asyncio.create_task(run_in_background(user.mm_user_id, channel_id, principal, start, end))
 
@@ -48,8 +49,9 @@ async def get_a_month(
     data = await request.json
     mm_username = data['context']['acting_user']['username']
     channel_id = data['context']['channel']['id']
-    start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0, microsecond=0)
-    end = start.replace(hour=23, minute=59, second=59) + timedelta(days=30)
+    dt_now = datetime.now(ZoneInfo(user.timezone))
+    start = datetime(year=dt_now.year, month=dt_now.month, day=dt_now.day, tzinfo=dt_now.tzinfo)
+    end = start + timedelta(days=29)
 
     asyncio.create_task(run_in_background(user.mm_user_id, channel_id, principal, start, end))
 
@@ -71,12 +73,8 @@ async def from_to(
 
     try:
 
-        start = datetime.strptime(dtstart, '%d.%m.%Y').replace(
-            tzinfo=ZoneInfo(user.timezone)
-        )
-        end = datetime.strptime(dtend, '%d.%m.%Y').replace(
-            tzinfo=ZoneInfo(user.timezone), hour=23, minute=59, second=59
-        )
+        start = datetime.strptime(dtstart, '%d.%m.%Y').replace(tzinfo=ZoneInfo(user.timezone))
+        end = datetime.strptime(dtend, '%d.%m.%Y').replace(tzinfo=ZoneInfo(user.timezone)) + timedelta(days=1)
 
     except ValueError as exp:
 
@@ -108,7 +106,7 @@ async def current(
     try:
 
         start = datetime.strptime(dt, '%d.%m.%Y').replace(tzinfo=ZoneInfo(user.timezone))
-        end = start.replace(hour=23, minute=59, second=59)
+        end = start + timedelta(days=1)
 
     except ValueError as exp:
 
@@ -130,8 +128,9 @@ async def today(
 ) -> dict:
     data = await request.json
     channel_id = data['context']['channel']['id']
-    start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0, microsecond=0)
-    end = start.replace(hour=23, minute=59, second=59)
+    dt_now = datetime.now(ZoneInfo(user.timezone))
+    start = datetime(year=dt_now.year, month=dt_now.month, day=dt_now.day, tzinfo=dt_now.tzinfo)
+    end = start + timedelta(days=1)
 
     asyncio.create_task(run_in_background(user.mm_user_id, channel_id, principal, start, end))
 
@@ -143,8 +142,9 @@ async def daily_notification(
         user: UserView,
         exist_calendars: Sequence[Calendar]
 ) -> dict:
-    start = datetime.now(ZoneInfo(user.timezone)).replace(hour=0, minute=0, second=0, microsecond=0)
-    end = start.replace(hour=23, minute=59, second=59)
+    dt_now = datetime.now(ZoneInfo(user.timezone))
+    start = datetime(year=dt_now.year, month=dt_now.month, day=dt_now.day, tzinfo=dt_now.tzinfo)
+    end = start + timedelta(days=1)
 
     return await notification_views.daily_notify_view(exist_calendars, 'get_daily.md', (start, end))
 
@@ -154,10 +154,7 @@ async def check_exist_calendars_by_cal_id(
         principal: Principal,
         cals: AsyncGenerator[Row, None],
 ) -> set[Calendar] | dict:
-    background_tasks = [
-        asyncio.create_task(caldav_calendar_by_cal_id(principal, cal_id=c.cal_id))
-        async for c in cals
-    ]
+    background_tasks = [asyncio.create_task(caldav_calendar_by_cal_id(principal, cal_id=c.cal_id)) async for c in cals]
 
     cals_set = set()
     for task in asyncio.as_completed(background_tasks):
@@ -165,7 +162,7 @@ async def check_exist_calendars_by_cal_id(
 
         try:
 
-            await caldav_objects_by_sync_token(cal)
+            await caldav_get_supported_components(cal)
 
         except caldav_errs.NotFoundError as exp:
 
@@ -178,4 +175,3 @@ async def check_exist_calendars_by_cal_id(
         return dict_responses.no_calendars_on_server()
 
     return cals_set
-

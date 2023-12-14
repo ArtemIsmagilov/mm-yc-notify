@@ -1,5 +1,4 @@
 import asyncio
-from caldav import SynchronizableCalendarObjectCollection as SyncCal
 from caldav import Principal, Calendar, DAVClient, CalendarObjectResource
 import caldav.lib.error as caldav_errs
 
@@ -41,5 +40,5 @@ async def caldav_create_calendar(principal: Principal, *args, **kwargs) -> Calen
     return await asyncio.to_thread(principal.make_calendar, *args, **kwargs)
 
 
-async def caldav_objects_by_sync_token(calendar: Calendar, *args, **kwargs) -> SyncCal:
-    return await asyncio.to_thread(calendar.objects_by_sync_token, *args, **kwargs)
+async def caldav_get_supported_components(calendar: Calendar):
+    return await asyncio.to_thread(calendar.get_supported_components)

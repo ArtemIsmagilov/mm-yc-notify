@@ -9,16 +9,14 @@ import textwrap, caldav
 from apscheduler.triggers.cron import CronTrigger
 
 
-def get_delay_daily(hour: int, minute: int):
-    next_dt = CronTrigger(hour=hour, minute=minute, timezone=UTC).next()
-    now_dt = datetime.now(UTC)
-    delay = round((next_dt - now_dt).total_seconds()) * 1000
+def get_delay_daily(hour: int, minute: int) -> int:
+    delay = round(
+        (CronTrigger(hour=hour, minute=minute, timezone=UTC).next() - datetime.now(UTC)).total_seconds()) * 1000
     return delay
 
 
-def get_delay_with_dtstart(dtstart: datetime):
-    now = datetime.now(UTC)
-    delay = round((dtstart - now).total_seconds()) * 1000
+def get_delay_with_dtstart(dtstart: datetime) -> int:
+    delay = round((dtstart.astimezone(UTC) - datetime.now(UTC)).total_seconds()) * 1000
     return delay
 
 
@@ -40,7 +38,7 @@ def iso1_gt_iso2(iso1: str, iso2: str) -> bool:
 
 def conference_all_day(conf: Conference):
     start, end = datetime.fromisoformat(conf.dtstart), datetime.fromisoformat(conf.dtend)
-    return (start.hour, start.minute, start.second) == (end.hour, end.minute, end.second)
+    return (start.hour, start.minute, start.second) == (end.hour, end.minute, end.second) == (0, 0, 0)
 
 
 def dont_clear(iso_data: str) -> bool:
@@ -90,13 +88,15 @@ def create_row_table(row_obj: Row):
 
 def equal_conferences(conf, other_conf):
     for p in CONFERENCE_PROPERTIES:
+        if p in ("organizer", "attendee"):
+            continue
         if getattr(conf, p) != getattr(other_conf, p):
             return False
     return True
 
 
 def past_conference(conf: Conference | Row):
-    return datetime.fromisoformat(conf.dtend) < datetime.now(UTC)
+    return datetime.fromisoformat(conf.dtend).astimezone(UTC) < datetime.now(UTC)
 
 
 def create_table_md(table: dict) -> str:

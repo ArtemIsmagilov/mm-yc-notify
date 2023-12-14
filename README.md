@@ -569,3 +569,5 @@
   Mattermost API в пакете
   драйвера https://github.com/embl-bio-it/python-mattermost-autodriver#updating-openapi-specification
   Драйвер не упоминается на сайте Mattermost, однако имеет все шансы быть официальным. Требуется дальнейшая доработка
+- Василию, очень интересный проект
+- Анастасии, помощь в разработке и тестировании приложения

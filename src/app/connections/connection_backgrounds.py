@@ -83,20 +83,16 @@ async def bg_update_account(
 ):
     async with get_conn() as conn:
         await asyncio.gather(
-            asyncio.create_task(
-                YandexCalendar.remove_cals(conn, mm_user_id)
-            ),
-            asyncio.create_task(
-                User.update_user(
-                    conn,
-                    mm_user_id,
-                    login=login,
-                    token=token,
-                    timezone=timezone,
-                    e_c=False,
-                    ch_stat=False,
-                    session=token_hex(16),
-                )
+            YandexCalendar.remove_cals(conn, mm_user_id),
+            User.update_user(
+                conn,
+                mm_user_id,
+                login=login,
+                token=token,
+                timezone=timezone,
+                e_c=False,
+                ch_stat=False,
+                session=token_hex(16),
             ),
         )
 

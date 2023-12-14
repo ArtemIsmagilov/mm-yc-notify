@@ -1,9 +1,9 @@
-from sqlalchemy import MetaData
+import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import create_async_engine
 from settings import Conf
 
 engine = create_async_engine(Conf.DB_URL, echo=True if Conf.LOG_LEVEL == 10 else None)
-metadata_obj = MetaData()
+metadata_obj = sa.MetaData()
 
 
 # Dependency

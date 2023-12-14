@@ -1,7 +1,6 @@
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy.engine import Row
-from sqlalchemy import select
 from ..sql_app.models import user_account_table, yandex_calendar_table, yandex_conference_table
 
 
@@ -37,7 +36,8 @@ class User:
     @classmethod
     async def get_user(cls, conn: AsyncConnection, mm_user_id: str) -> Row:
         result = await conn.execute(
-            select(user_account_table.c)
+            user_account_table
+            .select()
             .where(user_account_table.c.mm_user_id == mm_user_id)
         )
         return result.first()
@@ -45,7 +45,8 @@ class User:
     @classmethod
     async def get_user_by_session(cls, conn: AsyncConnection, session: str) -> Row:
         result = await conn.execute(
-            select(user_account_table.c)
+            user_account_table
+            .select()
             .where(user_account_table.c.session == session)
         )
         return result.first()
@@ -53,7 +54,8 @@ class User:
     @classmethod
     async def all_users(cls, conn: AsyncConnection) -> AsyncGenerator[Row, None]:
         result = await conn.execute(
-            select(user_account_table.c)
+            user_account_table
+            .select()
         )
         for row in result:
             yield row
@@ -64,13 +66,6 @@ class User:
             user_account_table
             .delete()
             .where(user_account_table.c.mm_user_id == mm_user_id)
-        )
-
-    @classmethod
-    async def remove_all_users(cls, conn: AsyncConnection):
-        await conn.execute(
-            user_account_table
-            .delete()
         )
 
     @classmethod
@@ -86,11 +81,11 @@ class User:
 class YandexCalendar:
 
     @classmethod
-    async def add_one_cal(cls, conn: AsyncConnection, mm_user_id: str, cal_id: str, sync_token: str):
+    async def add_one_cal(cls, conn: AsyncConnection, mm_user_id: str, cal_id: str):
         await conn.execute(
             yandex_calendar_table
             .insert()
-            .values(mm_user_id=mm_user_id, cal_id=cal_id, sync_token=sync_token)
+            .values(mm_user_id=mm_user_id, cal_id=cal_id)
         )
 
     @classmethod
@@ -104,7 +99,8 @@ class YandexCalendar:
     @classmethod
     async def get_cal(cls, conn: AsyncConnection, cal_id: str) -> Row:
         result = await conn.execute(
-            select(yandex_calendar_table.c)
+            yandex_calendar_table
+            .select()
             .where(yandex_calendar_table.c.cal_id == cal_id)
         )
         return result.first()
@@ -112,7 +108,8 @@ class YandexCalendar:
     @classmethod
     async def get_cals(cls, conn: AsyncConnection, mm_user_id: str) -> AsyncGenerator[Row, None]:
         result = await conn.execute(
-            select(yandex_calendar_table.c)
+            yandex_calendar_table
+            .select()
             .where(yandex_calendar_table.c.mm_user_id == mm_user_id)
         )
         for row in result:
@@ -121,7 +118,8 @@ class YandexCalendar:
     @classmethod
     async def get_first_cal(cls, conn: AsyncConnection, mm_user_id: str) -> Row:
         result = await conn.execute(
-            select(yandex_calendar_table.c)
+            yandex_calendar_table
+            .select()
             .where(yandex_calendar_table.c.mm_user_id == mm_user_id)
             .limit(1)
         )
@@ -167,6 +165,17 @@ class YandexConference:
         )
 
         return result.first()
+
+    @classmethod
+    async def get_conferences_by_cal_id(cls, conn: AsyncConnection, cal_id: str) -> AsyncGenerator[Row, None]:
+        result = await conn.execute(
+            yandex_conference_table
+            .select()
+            .where(yandex_conference_table.c.cal_id == cal_id)
+        )
+
+        for row in result:
+            yield row
 
     @classmethod
     async def add_conference(

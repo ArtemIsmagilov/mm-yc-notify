@@ -1,9 +1,23 @@
-from taskiq_aio_pika import AioPikaBroker
-from taskiq import InMemoryBroker
+from dramatiq.middleware import Prometheus
+import dramatiq
+from dramatiq.middleware.asyncio import AsyncIO
+from dramatiq.brokers.rabbitmq import RabbitmqBroker
+
 from settings import Conf
 
-# taskiq worker app.notifications.worker:broker --fs-discover
-if Conf.TESTING:
-    broker = InMemoryBroker()
-else:
-    broker = AioPikaBroker(Conf.BROKER)
+
+# dramatiq app.notifications.tasks
+def remove_prometheus(b: RabbitmqBroker):
+    for m in b.middleware:
+        if type(m) is Prometheus:
+            b.middleware.remove(m)
+            break
+
+
+broker = RabbitmqBroker(url=Conf.BROKER)
+
+dramatiq.set_broker(broker)
+
+dramatiq.get_broker().add_middleware(AsyncIO())
+
+remove_prometheus(dramatiq.get_broker())

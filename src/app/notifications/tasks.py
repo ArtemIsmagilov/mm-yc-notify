@@ -1,17 +1,20 @@
 import asyncio, json, logging
+from dramatiq import actor
+from textwrap import shorten
 from datetime import timedelta, datetime
 import caldav.lib.error as caldav_errors
-from caldav import SynchronizableCalendarObjectCollection as SyncCal, Principal
+from caldav import Principal, Calendar
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
-
+from typing import Sequence
 from ..app_handlers import static_file
 from ..async_wraps.async_wrap_caldav import (
-    caldav_calendar_by_cal_id, caldav_objects_by_sync_token, caldav_event_by_uid
+    caldav_calendar_by_cal_id, caldav_event_by_uid
 )
 from ..bots.bot_commands import send_msg_client, update_custom_status, get_user_by_mm_user_id
 from ..calendars import caldav_api, caldav_filters
 from ..calendars.caldav_funcs import take_principal
+from ..calendars.caldav_searchers import find_conferences_in_one_cal
 from ..calendars.conference import Conference
 from ..converters import (
     get_dt_with_UTC_tz_from_iso, iso1_gt_iso2, dont_clear, create_conference_table, create_row_table, equal_conferences,
@@ -21,7 +24,9 @@ from ..notifications import notification_views
 from ..schemas import UserView
 from ..sql_app.crud import YandexConference, YandexCalendar, User
 from ..sql_app.database import get_conn
-from .worker import broker
+from ..notifications.worker import *
+from zoneinfo import ZoneInfo
+from settings import Conf
 
 
 async def task0():
@@ -30,68 +35,74 @@ async def task0():
     await check_events_job()
 
 
-@broker.task
+@actor(max_retries=1)
 async def task1(session: str, hour: int, minute: int):
     """daily_notification_job"""
     logging.debug('daily_notification_job(%s, %s, %s)', session, hour, minute)
     await daily_notification_job(session, hour, minute)
 
 
-@broker.task
+@actor(max_retries=1)
 async def task2(session: str, uid: str, dtstart: str):
     """notify_next_conference_job"""
     logging.debug('notify_next_conference_job(%s, %s, %s)', session, uid, dtstart)
     await notify_next_conference_job(session, uid, dtstart)
 
 
-@broker.task
+@actor(max_retries=1)
 async def task3(session: str, expires_at: str):
     """change_status_job"""
     logging.debug('change_status_job(%s, %s)', session, expires_at)
     await change_status_job(session, expires_at)
 
 
-@broker.task
+@actor(max_retries=1)
 async def task4(session: str, latest_custom_status: str):
     """return_latest_custom_status_job"""
     logging.debug('return_latest_custom_status_job(%s, %s)', session, latest_custom_status)
     await return_latest_custom_status_job(session, latest_custom_status)
 
 
-async def _load_changes_events(conn: AsyncConnection, principal: Principal, user: UserView, get_user_cal: Row):
-    not_sync_cal = await caldav_calendar_by_cal_id(principal, cal_id=get_user_cal.cal_id)
+async def _load_changes_events(conn: AsyncConnection, principal: Principal, user: UserView, user_cal_in_db: Row):
+    cal_in_server = await caldav_calendar_by_cal_id(principal, cal_id=user_cal_in_db.cal_id)
 
-    # get sync_token from db
+    dt_start = datetime(1970, 1, 1, tzinfo=ZoneInfo(user.timezone))
+    dt_end = datetime(2050, 1, 1, tzinfo=ZoneInfo(user.timezone))
 
     try:
-
-        sync_cal = await caldav_objects_by_sync_token(
-            not_sync_cal, sync_token=get_user_cal.sync_token, load_objects=True
-        )
+        cal_confs = await find_conferences_in_one_cal(cal_in_server, (dt_start, dt_end))
 
     except caldav_errors.NotFoundError as exp:
-        await YandexCalendar.remove_cal(conn, get_user_cal.cal_id)
+        await YandexCalendar.remove_cal(conn, user_cal_in_db.cal_id)
 
     else:
-        # update sync_token in db
-        await YandexCalendar.update_cal(conn, get_user_cal.cal_id, sync_token=sync_cal.sync_token)
-
-        await load_updated_added_deleted_events(conn, user, sync_cal)
+        if cal_confs:
+            await load_updated_added_deleted_events(conn, user, cal_confs)
 
 
 async def check_events_job():
     async with get_conn() as conn:
         async for user in User.all_users(conn):
-            principal = await take_principal(user.login, user.token)
+            user_view = UserView(
+                user.mm_user_id,
+                user.login,
+                user.token,
+                user.timezone,
+                user.e_c,
+                user.ch_stat,
+                user.session,
+                user.status
+            )
+            principal = await take_principal(user_view.login, user_view.token)
             if type(principal) is dict:
 
-                await User.remove_user(conn, user.mm_user_id)
+                await User.remove_user(conn, user_view.mm_user_id)
                 continue
 
             else:
 
-                async for get_user_cal in YandexCalendar.get_cals(conn, user.mm_user_id):
-                    await _load_changes_events(conn, principal, user, get_user_cal)
+                async for cal_in_db in YandexCalendar.get_cals(conn, user_view.mm_user_id):
+                    await _load_changes_events(conn, principal, user_view, cal_in_db)
 
 
 async def return_latest_custom_status_job(session: str, latest_custom_status: str):
@@ -153,7 +164,7 @@ async def change_status_job(session: str, expires_at: str):
                 if user.status != js_current_options:
                     await User.update_user(conn, user.mm_user_id, status=js_current_options)
 
-                await task4.kicker().with_labels(delay=delay).kiq(session, js_current_options)
+                await task4.send_with_options(args=(session, js_current_options), delay=delay)
 
                 asyncio.create_task(update_custom_status(user.mm_user_id, new_options))
 
@@ -164,7 +175,7 @@ async def change_status_job(session: str, expires_at: str):
                 if user.status != js_current_options:
                     await User.update_user(conn, user.mm_user_id, status=js_current_options)
 
-                await task4.kicker().with_labels(delay=delay).kiq(session, js_current_options)
+                await task4.send_with_options(args=(session, js_current_options), delay=delay)
 
                 asyncio.create_task(update_custom_status(user.mm_user_id, new_options))
 
@@ -186,12 +197,12 @@ async def notify_next_conference_job(session: str, uid: str, dtstart: str) -> No
 
             return
 
-        user_conf = await YandexConference.get_conference(conn, uid)
+        conf_in_db = await YandexConference.get_conference(conn, uid)
 
-        if not user_conf:
+        if not conf_in_db:
             return
 
-        cal = await caldav_calendar_by_cal_id(principal, cal_id=user_conf.cal_id)
+        cal = await caldav_calendar_by_cal_id(principal, cal_id=conf_in_db.cal_id)
 
         try:
 
@@ -236,7 +247,7 @@ async def notify_next_conference_job(session: str, uid: str, dtstart: str) -> No
                 if user.ch_stat:
                     delay = get_delay_with_dtstart(datetime.fromisoformat(conf_obj.dtstart))
 
-                    await task3.kicker().with_labels(delay=delay).kiq(session, conf_obj.dtend)
+                    task3.send_with_options(args=(session, conf_obj.dtend), delay=delay)
 
 
 async def daily_notification_job(session: str, hour: int, minute: int):
@@ -280,140 +291,123 @@ async def daily_notification_job(session: str, hour: int, minute: int):
         asyncio.create_task(send_msg_client(user.mm_user_id, msg, props))
 
         delay = get_delay_daily(hour, minute)
-        await task1.kicker().with_labels(delay=delay).kiq(session, hour, minute)
+        task1.send_with_options(args=(session, hour, minute), delay=delay)
 
 
 async def load_updated_added_deleted_events(
         conn: AsyncConnection,
         user: UserView,
-        sync_cal: SyncCal,
+        cal_confs: tuple[Calendar, Sequence[Conference]] | None,
         notify=True
 ):
+    if not cal_confs:
+        return
+    cal, confs = cal_confs
     mm_user_id = user.mm_user_id
-    cal_id = sync_cal.calendar.id
-    calendar_name = str(sync_cal.calendar)
+    cal_id = cal.id
+    calendar_name = str(cal)
+    conf_uids = set()
+    for c in confs:
+        conf_uids.add(c.uid)
+        str_organizer = ', '.join(f'{k} - {v}' for k, v in c.organizer.items()) if c.organizer else 'None'
+        str_attendee = "; ".join(", ".join(f"{attr} - {value}" for attr, value in a.items()) for a in c.attendee
+                                 ) if c.attendee else 'None'
+        str_organizer = shorten(str_organizer, 255)
+        str_attendee = shorten(str_attendee, 255)
 
-    for sync_event in sync_cal:
-        # if deleted conference
-        if not sync_event.data:
+        conf_in_db = await YandexConference.get_conference(conn, c.uid)
 
-            canonical_url = sync_event.canonical_url
+        # if added conf
+        if not conf_in_db:
+            await YandexConference.add_conference(
+                conn,
+                cal_id=cal_id,
+                uid=c.uid,
+                timezone=c.timezone,
+                dtstart=c.dtstart,
+                dtend=c.dtend,
+                summary=c.summary,
+                created=c.created,
+                last_modified=c.last_modified,
+                description=c.description,
+                url_event=c.url_event,
+                categories=c.categories,
+                x_telemost_conference=c.x_telemost_conference,
+                organizer=str_organizer,
+                attendee=str_attendee,
+                location=c.location,
+            )
 
-            uid = canonical_url.split('/')[-1].removesuffix('.ics')
+            if notify is True:
+                new_table = create_conference_table(c)
+                represents = await notification_views.notify_loaded_conference_view(
+                    "loaded_conference.md", calendar_name, "added", None, new_table
+                )
 
-            deleted_conf = await YandexConference.remove_conference(conn, uid)
+                asyncio.create_task(send_msg_client(mm_user_id, represents.get('text')))
+        # if updated conf
+        elif not equal_conferences(c, conf_in_db):
+            await YandexConference.update_conference(
+                conn,
+                uid=c.uid,
+                timezone=c.timezone,
+                dtstart=c.dtstart,
+                dtend=c.dtend,
+                summary=c.summary,
+                created=c.created,
+                last_modified=c.last_modified,
+                description=c.description,
+                url_event=c.url_event,
+                categories=c.categories,
+                x_telemost_conference=c.x_telemost_conference,
+                organizer=str_organizer,
+                attendee=str_attendee,
+                location=c.location,
+            )
 
-            if deleted_conf:
+            if notify is True:
+                was_table = create_row_table(conf_in_db)
+                new_table = create_conference_table(c)
 
-                # if conference was passed then skip
-                if past_conference(deleted_conf):
-                    continue
+                represents = await notification_views.notify_loaded_conference_view(
+                    "loaded_conference.md", calendar_name, "updated", was_table, new_table
+                )
 
-                if notify is True:
-                    was_table = create_row_table(deleted_conf)
+                asyncio.create_task(send_msg_client(mm_user_id, represents.get('text')))
 
-                    represents = await notification_views.notify_loaded_conference_view(
-                        'loaded_conference.md', calendar_name, 'deleted', was_table, None
-                    )
-
-                    asyncio.create_task(send_msg_client(mm_user_id, represents.get('text')))
+        else:
 
             continue
 
-        i_event = sync_event.icalendar_component
+        # if conference was passed then skip
+        if past_conference(c) or conference_all_day(c):
+            continue
 
-        if i_event.get('X-TELEMOST-CONFERENCE'):
+        # new conference + user e_c or ch_stat + start date > now + 15 min
+        if Conf.TESTING:
+            if (user.e_c or user.ch_stat) and caldav_filters.start_gt_now(c.dtstart):  # debug
+                start_job = get_dt_with_UTC_tz_from_iso(c.dtstart) - timedelta(seconds=10)  # debug
 
-            conf = Conference(i_event, user.timezone)
+                delay = get_delay_with_dtstart(start_job)
+                task2.send_with_options(args=(user.session, c.uid, c.dtstart), delay=delay)
 
-            # if conference was passed then skip
-            if past_conference(conf):
-                continue
+        else:
+            if (user.e_c or user.ch_stat) and caldav_filters.start_gt_15_min(c.dtstart):  # production
+                start_job = get_dt_with_UTC_tz_from_iso(c.dtstart) - timedelta(minutes=10)  # production
 
-            get_conf_user = await YandexConference.get_conference(conn, conf.uid)
+                delay = get_delay_with_dtstart(start_job)
+                task2.send_with_options(args=(user.session, c.uid, c.dtstart), delay=delay)
 
-            str_organizer = ', '.join(f'{k} - {v}' for k, v in conf.organizer.items()) if conf.organizer else None
-            str_attendee = "; ".join(", ".join(f"{attr} - {value}" for attr, value in a.items()) for a in
-                                     conf.attendee) if conf.attendee else None
+    async for conf in YandexConference.get_conferences_by_cal_id(conn, cal_id):
+        if conf.uid not in conf_uids:
 
-            # if added conference
-            if not get_conf_user:
-                await YandexConference.add_conference(
-                    conn,
-                    cal_id=cal_id,
-                    uid=conf.uid,
-                    timezone=conf.timezone,
-                    dtstart=conf.dtstart,
-                    dtend=conf.dtend,
-                    summary=conf.summary,
-                    created=conf.created,
-                    last_modified=conf.last_modified,
-                    description=conf.description,
-                    url_event=conf.url_event,
-                    categories=conf.categories,
-                    x_telemost_conference=conf.x_telemost_conference,
-                    organizer=str_organizer,
-                    attendee=str_attendee,
-                    location=conf.location,
+            await YandexConference.remove_conference(conn, conf.uid)
+
+            if notify is True:
+                was_table = create_row_table(conf)
+
+                represents = await notification_views.notify_loaded_conference_view(
+                    'loaded_conference.md', calendar_name, 'deleted', was_table, None
                 )
 
-                if notify is True:
-                    new_table = create_conference_table(conf)
-                    represents = await notification_views.notify_loaded_conference_view(
-                        "loaded_conference.md", calendar_name, "added", None, new_table
-                    )
-
-                    asyncio.create_task(send_msg_client(mm_user_id, represents.get('text')))
-
-            # if changed conference
-            elif get_conf_user and not equal_conferences(get_conf_user, conf):
-
-                await YandexConference.update_conference(
-                    conn,
-                    conf.uid,
-                    cal_id=cal_id,
-                    timezone=conf.timezone,
-                    dtstart=conf.dtstart,
-                    dtend=conf.dtend,
-                    summary=conf.summary,
-                    created=conf.created,
-                    last_modified=conf.last_modified,
-                    description=conf.description,
-                    url_event=conf.url_event,
-                    categories=conf.categories,
-                    x_telemost_conference=conf.x_telemost_conference,
-                    organizer=str_organizer,
-                    attendee=str_attendee,
-                    location=conf.location,
-                )
-
-                if notify is True:
-                    was_table = create_row_table(get_conf_user)
-                    new_table = create_conference_table(conf)
-
-                    represents = await notification_views.notify_loaded_conference_view(
-                        "loaded_conference.md", calendar_name, "updated", was_table, new_table
-                    )
-
-                    asyncio.create_task(send_msg_client(mm_user_id, represents.get('text')))
-
-            # else conference is exists
-            else:
-                continue
-            # if conference all day, then not notify and not change status
-            if conference_all_day(conf):
-                continue
-
-            # new conference + user e_c or ch_stat + start date > now + 15 min
-            if Conf.TESTING:
-                if (user.e_c or user.ch_stat) and caldav_filters.start_gt_now(conf.dtstart):  # debug
-                    start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(seconds=10)  # debug
-
-                    delay = get_delay_with_dtstart(start_job)
-                    await task2.kicker().with_labels(delay=delay).kiq(user.session, conf.uid, conf.dtstart)
-            else:
-                if (user.e_c or user.ch_stat) and caldav_filters.start_gt_15_min(conf.dtstart):  # production
-                    start_job = get_dt_with_UTC_tz_from_iso(conf.dtstart) - timedelta(minutes=10)  # production
-
-                    delay = get_delay_with_dtstart(start_job)
-                    await task2.kicker().with_labels(delay=delay).kiq(user.session, conf.uid, conf.dtstart)
+                asyncio.create_task(send_msg_client(mm_user_id, represents.get('text')))

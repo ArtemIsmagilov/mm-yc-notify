@@ -1,4 +1,4 @@
-### In calendar *{{ calendar_name }}* conference was `{{ loaded }}`.
+### In calendar *{{ calendar_name | string }}* conference was `{{ loaded }}`.
 
 {% if loaded == 'deleted' %}
 #### 🗑️

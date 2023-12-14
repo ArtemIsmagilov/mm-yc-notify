@@ -31,6 +31,10 @@ def create_app(test_config=None):
     async def help_info() -> dict:
         return await app_handlers.help_info()
 
+    @app.before_serving
+    async def startup():
+        pass
+
     @app.after_serving
     async def shutdown():
         await engine.dispose()

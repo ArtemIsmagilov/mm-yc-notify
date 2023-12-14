@@ -149,3 +149,10 @@ def daily_no_conferences():
         'type': 'ok',
         'text': 'Today you don\'t have conferences',
     }
+
+
+def invalid_clock_string():
+    return {
+        'type': 'error',
+        'text': 'Incorrect format `Time` field.',
+    }

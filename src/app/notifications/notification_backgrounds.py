@@ -1,10 +1,13 @@
 from secrets import token_hex
 from caldav import Principal
+from datetime import datetime
+from zoneinfo import ZoneInfo
 import asyncio
 import caldav.lib.error as caldav_errs
 
 from .. import dict_responses
-from ..async_wraps.async_wrap_caldav import caldav_objects_by_sync_token, caldav_calendar_by_cal_id
+from ..async_wraps.async_wrap_caldav import caldav_calendar_by_cal_id
+from ..calendars.caldav_searchers import find_conferences_in_one_cal
 from ..converters import get_h_m_utc, get_delay_daily
 from ..decorators.account_decorators import app_error
 from ..notifications import tasks
@@ -26,44 +29,38 @@ async def bg_continue_create_notification(
 
     result_cals_cal_id = await asyncio.gather(*(
         asyncio.create_task(caldav_calendar_by_cal_id(principal, cal_id=c['value'])) for c in cals_form
-    ), return_exceptions=True)
+    ))
+
+    dt_start = datetime(1970, 1, 1, tzinfo=ZoneInfo(user.timezone))
+    dt_end = datetime(2050, 1, 1, tzinfo=ZoneInfo(user.timezone))
 
     try:
-        result_sync_cals = await asyncio.gather(*(
-            asyncio.create_task(caldav_objects_by_sync_token(result_cal, load_objects=True))
+        result_cals_confs = await asyncio.gather(*(
+            asyncio.create_task(find_conferences_in_one_cal(result_cal, (dt_start, dt_end)))
             for result_cal in result_cals_cal_id
-        ), return_exceptions=True)
+        ))
 
     except caldav_errs.NotFoundError as exp:
 
         return dict_responses.calendar_not_found()
 
-    sync_cals_in_db = [
-        {'mm_user_id': user.mm_user_id, 'cal_id': sync_cal.calendar.id, 'sync_token': sync_cal.sync_token}
-        for sync_cal in result_sync_cals
-    ]
+    sync_cals_in_db = [{'mm_user_id': user.mm_user_id, 'cal_id': sync_cal.id} for sync_cal in result_cals_cal_id]
 
     async with get_conn() as conn:
         session = token_hex(16)
         await asyncio.gather(
-            asyncio.create_task(
-                User.update_user(conn, user.mm_user_id, e_c=e_c, ch_stat=ch_stat, session=session)
-            ),
-            asyncio.create_task(
-                YandexCalendar.add_many_cals(conn, sync_cals_in_db)
-            ),
-            return_exceptions=True
+            asyncio.create_task(User.update_user(conn, user.mm_user_id, e_c=e_c, ch_stat=ch_stat, session=session)),
+            asyncio.create_task(YandexCalendar.add_many_cals(conn, sync_cals_in_db)),
         )
 
-    async with get_conn() as conn:
         user.e_c, user.ch_stat, user.session = e_c, ch_stat, session
         await asyncio.gather(*(
-            asyncio.create_task(tasks.load_updated_added_deleted_events(conn, user, sync_cal, notify=False))
-            for sync_cal in result_sync_cals
-        ), return_exceptions=True)
+            asyncio.create_task(tasks.load_updated_added_deleted_events(conn, user, cal_confs, notify=False))
+            for cal_confs in result_cals_confs
+        ))
 
     delay = get_delay_daily(h, m)
-    await tasks.task1.kicker().with_labels(delay=delay).kiq(user.session, h, m)
+    tasks.task1.send_with_options(args=(user.session, h, m), delay=delay)
 
 
 @app_error
@@ -85,5 +82,8 @@ async def bg_remove_notification(
         mm_user_id: str
 ):
     async with get_conn() as conn:
-        await YandexCalendar.remove_cals(conn, mm_user_id)
-        await User.update_user(conn, mm_user_id, session=token_hex(16))
+        await asyncio.gather(
+            YandexCalendar.remove_cals(conn, mm_user_id),
+            User.update_user(conn, mm_user_id, e_c=False, ch_stat=False, session=token_hex(16)),
+        )
+
