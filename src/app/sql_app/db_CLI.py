@@ -1,5 +1,5 @@
 from quart import Quart
-from sqlalchemy import text
+import sqlalchemy as sa
 import asyncio, click
 
 from ..sql_app.database import metadata_obj, get_conn
@@ -27,5 +27,5 @@ async def _init_db():
 
 async def _drop_db():
     async with get_conn() as conn:
-        stmt = text('DROP TABLE IF EXISTS user_account, yandex_calendar, yandex_conference CASCADE')
+        stmt = sa.text('DROP TABLE IF EXISTS user_account, yandex_calendar, yandex_conference CASCADE')
         await conn.execute(stmt)

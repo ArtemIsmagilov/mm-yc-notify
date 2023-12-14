@@ -1,11 +1,12 @@
+from dramatiq.middleware import Prometheus
 import dramatiq
-from dramatiq.brokers.rabbitmq import RabbitmqBroker
 from dramatiq.middleware.asyncio import AsyncIO
-from dramatiq.middleware.prometheus import Prometheus
+from dramatiq.brokers.rabbitmq import RabbitmqBroker
 
 from settings import Conf
 
 
+# dramatiq app.notifications.tasks
 def remove_prometheus(b: RabbitmqBroker):
     for m in b.middleware:
         if type(m) is Prometheus:
@@ -15,8 +16,8 @@ def remove_prometheus(b: RabbitmqBroker):
 
 broker = RabbitmqBroker(url=Conf.BROKER)
 
-remove_prometheus(broker)
-
-broker.add_middleware(AsyncIO())
-
 dramatiq.set_broker(broker)
+
+dramatiq.get_broker().add_middleware(AsyncIO())
+
+remove_prometheus(dramatiq.get_broker())

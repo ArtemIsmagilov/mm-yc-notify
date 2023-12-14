@@ -2,7 +2,7 @@ from ..async_wraps.async_wrap_caldav import caldav_search
 from ..calendars.conference import Conference
 
 from datetime import datetime
-from caldav import Calendar, Event
+from caldav import Calendar
 import asyncio
 from typing import AsyncGenerator, Sequence
 
@@ -22,13 +22,13 @@ async def find_conferences_in_some_cals(
 async def find_conferences_in_one_cal(
         cal: Calendar,
         dates: tuple[datetime, datetime],
-) -> tuple[str, Sequence[Conference]] | None:
-    timezone = str(dates[0].tzinfo)
-    events = await caldav_search(cal, event=True, start=dates[0], end=dates[1], sort_keys=("dtstart",))
+) -> tuple[Calendar, Sequence[Conference]] | None:
+    tz = str(dates[0].tzinfo)
+    events = await caldav_search(cal, event=True, start=dates[0], end=dates[1], sort_keys=('dtstart',))
+
     conferences = [
-        Conference(e.icalendar_component, timezone) for e in events
-        if e.icalendar_component.get("X-TELEMOST-CONFERENCE")
+        Conference(e.icalendar_component, tz) for e in events if e.icalendar_component.get("X-TELEMOST-CONFERENCE")
     ]
 
     if conferences:
-        return str(cal), conferences
+        return cal, conferences

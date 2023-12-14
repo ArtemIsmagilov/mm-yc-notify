@@ -1042,10 +1042,10 @@ class TestNotifications:
 @pytest.mark.asyncio(scope="module")
 class TestTasks:
     async def test_task1_noauth(self):
-        result = await tasks.daily_notification_job(mm_user_id, *get_h_m_utc("7:00", Conf.test_client_ya_timezone))
-
+        task = await tasks.task1.kiq(mm_user_id, *get_h_m_utc("7:00", Conf.test_client_ya_timezone))
+        result = await task.wait_result()
         # task1 no auth
-        assert result is None
+        assert result.return_value is None
 
     @pytest.mark.parametrize('fake_login, fake_token', (
             ('incorrect', Conf.test_client_ya_token),
@@ -1063,11 +1063,10 @@ class TestTasks:
         async with get_conn() as conn:
             user = await User.get_user(conn, mm_user_id)
 
-            result = await tasks.daily_notification_job(user.session,
-                                                        *get_h_m_utc("7:00", Conf.test_client_ya_timezone))
-
+            task = await tasks.task1.kiq(user.session, *get_h_m_utc("7:00", Conf.test_client_ya_timezone))
+            result = await task.wait_result()
             assert await User.get_user(conn, mm_user_id) is None
-            assert result is None
+            assert result.return_value is None
 
         Conf.test_client_ya_login = login
         Conf.test_client_ya_token = token
@@ -1089,11 +1088,11 @@ class TestTasks:
 
         async with get_conn() as conn:
             user = await User.get_user(conn, mm_user_id)
-            result = await tasks.daily_notification_job(user.session,
-                                                        *get_h_m_utc("7:00", Conf.test_client_ya_timezone))
+            task = await tasks.task1.kiq(user.session, *get_h_m_utc("7:00", Conf.test_client_ya_timezone))
+            result = await task.wait_result()
 
             assert await YandexCalendar.get_first_cal(conn, mm_user_id) is None
-            assert result is None
+            assert result.return_value is None
 
         await asyncio.gather(
             asyncio.create_task(caldav_create_calendar(test_principal, name=Conf.test_client_calendar_name1)),
@@ -1117,8 +1116,8 @@ class TestTasks:
 
         async with get_conn() as conn:
             user = await User.get_user(conn, mm_user_id)
-            result = await tasks.daily_notification_job(user.session,
-                                                        *get_h_m_utc("7:00", Conf.test_client_ya_timezone))
-            assert result is None
+            task = await tasks.task1.kiq(user.session, *get_h_m_utc("7:00", Conf.test_client_ya_timezone))
+            result = await task.wait_result()
+            assert result.return_value is None
 
         await decrease_user()

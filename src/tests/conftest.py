@@ -73,3 +73,7 @@ def runner(app):
 @pytest.fixture(scope="session")
 def event_loop_policy():
     return uvloop.EventLoopPolicy()
+
+@pytest.fixture
+def anyio_backend():
+    return 'asyncio'

@@ -2,7 +2,7 @@
 
 {% for calendar_name, conferences in represents %}
 
-## calendar name: {{ calendar_name }}
+## calendar name: {{ calendar_name | string }}
 
 Count conferences: `{{ conferences | length }}`
 
