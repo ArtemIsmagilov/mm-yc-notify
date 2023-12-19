@@ -31,6 +31,10 @@ def create_app(test_config=None):
     async def help_info() -> dict:
         return await app_handlers.help_info()
 
+    @app.post('/navigate_to_telemost')
+    async def navigate_to_telemost() -> dict:
+        return {'type': 'navigate', 'navigate_to_url': 'https://telemost.yandex.ru/'}
+
     @app.before_serving
     async def startup():
         pass

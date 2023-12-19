@@ -319,7 +319,22 @@ def bindings() -> dict:
                         ],
                     },
                 ],
-            }
+            },
+            {
+                'location': '/channel_header',
+                'bindings': [
+                    {
+                        "location": "redirect_to_telemost",
+                        "icon": static_file('telemost.png'),
+                        "label": "redirect to telemost",
+                        "hint": "redirect on https://telemost.yandex.ru/",
+                        "submit": {
+                            "path": url_for('navigate_to_telemost'),
+                            'expand': EXPAND_DICT,
+                        }
+                    },
+                ]
+            },
         ]
     }
 
@@ -328,12 +343,12 @@ def manifest() -> dict:
     return {
         'app_id': 'yandex-calendar',
         'homepage_url': 'https://github.com/ArtemIsmagilov/mm-yc-notify',
-        'version': 'v1.0.4',
+        'version': 'v1.0.5',
         'display_name': 'Yandex Calendar',
         'description': 'Integration your yandex calendar with Mattermost server on protocol CalDAV',
         'icon': 'cal.png',
         'requested_permissions': ['act_as_bot', 'act_as_user', 'remote_webhooks'],
-        'requested_locations': ['/command'],
+        'requested_locations': ['/command', '/channel_header'],
         'bindings': {
             'path': '/bindings',
         },
