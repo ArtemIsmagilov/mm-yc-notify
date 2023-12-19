@@ -10,13 +10,7 @@ async def base_view(calendars: Sequence[Calendar] | dict, template: str, dates: 
     if type(calendars) is dict:
         return calendars
 
-    represents = [r async for r in caldav_searchers.find_conferences_in_some_cals(calendars, dates)]
-
-    if not represents:
-        return {
-            'type': 'ok',
-            'text': 'No conferences',
-        }
+    represents = caldav_searchers.find_conferences_in_some_cals(calendars, dates)
 
     return {
         'type': 'ok',

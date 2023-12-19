@@ -1,10 +1,11 @@
 from secrets import token_hex
 from caldav import Principal
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import asyncio
 import caldav.lib.error as caldav_errs
 
+from settings import Conf
 from .. import dict_responses
 from ..async_wraps.async_wrap_caldav import caldav_calendar_by_cal_id
 from ..calendars.caldav_searchers import find_conferences_in_one_cal
@@ -31,8 +32,8 @@ async def bg_continue_create_notification(
         asyncio.create_task(caldav_calendar_by_cal_id(principal, cal_id=c['value'])) for c in cals_form
     ))
 
-    dt_start = datetime(1970, 1, 1, tzinfo=ZoneInfo(user.timezone))
-    dt_end = datetime(2050, 1, 1, tzinfo=ZoneInfo(user.timezone))
+    dt_start = datetime.now(ZoneInfo(user.timezone)).replace(microsecond=0)
+    dt_end = dt_start + timedelta(days=Conf.RANGE_DAYS)
 
     try:
         result_cals_confs = await asyncio.gather(*(
@@ -48,16 +49,13 @@ async def bg_continue_create_notification(
 
     async with get_conn() as conn:
         session = token_hex(16)
-        await asyncio.gather(
-            asyncio.create_task(User.update_user(conn, user.mm_user_id, e_c=e_c, ch_stat=ch_stat, session=session)),
-            asyncio.create_task(YandexCalendar.add_many_cals(conn, sync_cals_in_db)),
-        )
+        await User.update_user(conn, user.mm_user_id, e_c=e_c, ch_stat=ch_stat, session=session)
+        await YandexCalendar.add_many_cals(conn, sync_cals_in_db)
 
         user.e_c, user.ch_stat, user.session = e_c, ch_stat, session
-        await asyncio.gather(*(
-            asyncio.create_task(tasks.load_updated_added_deleted_events(conn, user, cal_confs, notify=False))
-            for cal_confs in result_cals_confs
-        ))
+        for cal_confs in result_cals_confs:
+            await tasks.load_updated_added_deleted_events(conn, user, cal_confs, notify=False)
+
 
     delay = get_delay_daily(h, m)
     tasks.task1.send_with_options(args=(user.session, h, m), delay=delay)
@@ -82,8 +80,6 @@ async def bg_remove_notification(
         mm_user_id: str
 ):
     async with get_conn() as conn:
-        await asyncio.gather(
-            YandexCalendar.remove_cals(conn, mm_user_id),
-            User.update_user(conn, mm_user_id, e_c=False, ch_stat=False, session=token_hex(16)),
-        )
+        await YandexCalendar.remove_cals(conn, mm_user_id)
+        await User.update_user(conn, mm_user_id, e_c=False, ch_stat=False, session=token_hex(16))
 

@@ -419,8 +419,34 @@
    ```bash
    sudo docker compose logs > output.txt
    ```
-   
-    
+7. Можно добавить миграцию БД 
+   - https://alembic.sqlalchemy.org/en/latest/tutorial.html
+   - https://alembic.sqlalchemy.org/en/latest/autogenerate.html
+   - https://github.com/sqlalchemy/alembic/issues/805
+   - в `/src`
+     ```bash
+     alembic init -t async alembic
+     ```
+   - в файле `alembic.ini` меняем url на действительный<br>
+     sqlalchemy.url = ~~driver://user:pass@localhost/dbname~~
+   - в файле `env.py` меняем target_metadata
+     ```text
+     from app.sql_app.models import metadata_obj
+     target_metadata = metadata_obj
+     # target_metadata = None
+     ```
+   - при изменениях делаем автогенерацию скрипта миграции
+     ```bash
+     alembic revision --autogenerate -m "Added account table"
+     ```
+   - запускаем миграцию
+     ```bash
+     alembic upgrade head
+     ```
+   - получить информацию
+     ```bash
+     alembic history --verbose
+     ```
 
 ## Полезные ссылки
 
@@ -456,6 +482,9 @@
 - asyncpg interface error https://stackoverflow.com/questions/66444620/asyncpg-cannot-perform-operation-another-operation-is-in-progress
 - best naming endpoints in restful https://blog.dreamfactory.com/best-practices-for-naming-rest-api-endpoints/
 - pgadmin https://www.pgadmin.org/docs/pgadmin4/latest/container_deployment.html
+- Recurrence events in CalDAV https://icalendar.org/iCalendar-RFC-5545/3-8-4-4-recurrence-id.html
+- cancel asyncio.to_thread Task https://stackoverflow.com/questions/71416383/python-asyncio-cancelling-a-to-thread-task-wont-stop-the-thread
+- asyncpg transaction error https://stackoverflow.com/questions/74313692/fastapi-asyncpg-sqlalchemy-cannot-use-connection-transaction-in-a-manual
 
 ## Вопрос-ответ
 

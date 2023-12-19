@@ -1,8 +1,10 @@
-# There is a conference to be held. Look Yandex Calendar
+{% block content %}{% endblock %}
+{% for calendar_name, conferences in represents %}
 
-### Info about upcoming conference
+## calendar name: {{ calendar_name | string }}
 
-### calendar name: {{ calendar_name | string }}
+{% for c in conferences %}
+__№{{ loop.index }}__
 
 {% if c.timezone %}* Timezone: {{ c.timezone }}{% endif %}
 {% if c.dtstart %}*  Start: {{ c.dtstart }}{% endif %}  
@@ -27,3 +29,4 @@
 {% if c.location %}* Location: {{ c.location }}{% endif %}
 {% if c.recurrence_id %}* Recurrence_id: {{ c.recurrence_id }}{% endif %}
 __________
+{% else %}No conference.{% endfor %}{% endfor %}

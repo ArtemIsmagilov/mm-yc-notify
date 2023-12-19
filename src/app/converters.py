@@ -26,8 +26,8 @@ def get_h_m_utc(h_m: str, tz: str):
     return dt.hour, dt.minute
 
 
-def get_dt_with_UTC_tz_from_iso(iso: str) -> datetime:
-    return datetime.fromisoformat(iso).astimezone(UTC)
+def get_dt_with_UTC_tz_from_iso(iso: datetime) -> datetime:
+    return iso.astimezone(UTC)
 
 
 def iso1_gt_iso2(iso1: str, iso2: str) -> bool:
@@ -37,8 +37,8 @@ def iso1_gt_iso2(iso1: str, iso2: str) -> bool:
 
 
 def conference_all_day(conf: Conference):
-    start, end = datetime.fromisoformat(conf.dtstart), datetime.fromisoformat(conf.dtend)
-    return (start.hour, start.minute, start.second) == (end.hour, end.minute, end.second) == (0, 0, 0)
+    start, end = conf.dtstart, conf.dtend
+    return (start.hour, start.minute, start.second) == (end.hour, end.minute, end.second) == (0, 0, 0) and not start - end
 
 
 def dont_clear(iso_data: str) -> bool:
@@ -48,7 +48,7 @@ def dont_clear(iso_data: str) -> bool:
     return inf_d == obj_d
 
 
-def create_conference_table(conf_obj: Conference):
+def create_conference_table(conf_obj: Conference) -> str:
     """
     example table: {'uid': 'id conference', 'timezone': 'UTC', ...}
     """
@@ -57,28 +57,12 @@ def create_conference_table(conf_obj: Conference):
         v = getattr(conf_obj, p)
         if v:
             if p == "organizer":
-                v = ", ".join(f"**{attr}** - *{value}*" for attr, value in v.items())
+                v = to_str_organizer(v)
 
             elif p == "attendee":
-                v = "; ".join(", ".join(f"**{attr}** - *{value}*" for attr, value in a.items()) for a in v)
+                v = to_str_attendee(v)
+            v = '%s' % v
 
-            new_v = v.replace("\n", ' ')
-
-            table[p] = textwrap.shorten(new_v, 155)
-
-    header, delimiter, body = " | ".join(table.keys()), "-|" * len(table), " | ".join(table.values())
-
-    return f"| {header} |\n|{delimiter}\n| {body} |"
-
-
-def create_row_table(row_obj: Row):
-    """
-    example table: {'uid': 'id conference', 'timezone': 'UTC', ...}
-    """
-    table = {}
-    for p in CONFERENCE_PROPERTIES:
-        v = getattr(row_obj, p)
-        if v:
             new_v = v.replace("\n", ' ')
 
             table[p] = textwrap.shorten(new_v, 155)
@@ -86,9 +70,27 @@ def create_row_table(row_obj: Row):
     return create_table_md(table)
 
 
-def equal_conferences(conf, other_conf):
+def create_row_table(row_obj: Row, tz: str):
+    """
+    example table: {'uid': 'id conference', 'timezone': 'UTC', ...}
+    """
+    table = {}
     for p in CONFERENCE_PROPERTIES:
-        if p in ("organizer", "attendee"):
+        v = getattr(row_obj, p)
+        if v:
+            if type(v) is datetime:
+                v = v.astimezone(ZoneInfo(tz))
+            v = '%s' % v
+
+            new_v = v.replace("\n", ' ')
+            table[p] = textwrap.shorten(new_v, 155)
+
+    return create_table_md(table)
+
+
+def equal_conferences(conf: Conference | Row, other_conf: Conference | Row):
+    for p in CONFERENCE_PROPERTIES:
+        if p in ("organizer", "attendee", "last_modified"):
             continue
         if getattr(conf, p) != getattr(other_conf, p):
             return False
@@ -96,7 +98,7 @@ def equal_conferences(conf, other_conf):
 
 
 def past_conference(conf: Conference | Row):
-    return datetime.fromisoformat(conf.dtend).astimezone(UTC) < datetime.now(UTC)
+    return conf.dtend.astimezone(UTC) < datetime.now(UTC)
 
 
 def create_table_md(table: dict) -> str:
@@ -118,3 +120,11 @@ def client_hex_calendar(cal: Calendar):
 
 def client_id_calendar(c: Calendar) -> str:
     return '%s(%s)' % (str(c), c.id)
+
+
+def to_str_attendee(v: list):
+    return "; ".join(", ".join(f"**{attr}** - *{value}*" for attr, value in a.items()) for a in v)
+
+
+def to_str_organizer(v: dict):
+    return ", ".join(f"**{attr}** - *{value}*" for attr, value in v.items())

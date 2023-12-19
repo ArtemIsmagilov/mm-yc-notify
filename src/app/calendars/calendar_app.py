@@ -25,6 +25,6 @@ async def today() -> dict:
     return await caldav_api.today()
 
 
-@bp.post('from_to')
-async def from_to() -> dict:
-    return await caldav_api.from_to()
+# @bp.post('from_to')
+# async def from_to() -> dict:
+#     return await caldav_api.from_to()

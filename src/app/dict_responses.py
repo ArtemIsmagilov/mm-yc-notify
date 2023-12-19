@@ -119,21 +119,21 @@ def wrong_format_date_current(mm_username: str, dt: str):
 def calendar_dosnt_exists():
     return {
         'type': 'error',
-        'text': 'Calendar doesn\'t exist.',
+        'text': '# Calendar doesn\'t exist.',
     }
 
 
 def calendar_not_found():
     return {
         'type': 'error',
-        'text': 'Calendar not found in yandex calendar server.'
+        'text': '# Calendar not found in yandex calendar server.'
     }
 
 
 def no_calendars_on_server():
     return {
         'type': 'error',
-        'text': 'You haven\'t calendars on CalDAV server.'
+        'text': '# You haven\'t calendars on CalDAV server.'
     }
 
 
@@ -147,12 +147,19 @@ def success_ok(mm_username: str):
 def daily_no_conferences():
     return {
         'type': 'ok',
-        'text': 'Today you don\'t have conferences',
+        'text': '# Today you don\'t have conferences',
     }
 
 
 def invalid_clock_string():
     return {
         'type': 'error',
-        'text': 'Incorrect format `Time` field.',
+        'text': '# Incorrect format `Time` field.',
+    }
+
+
+def timeout_task():
+    return {
+        'type': 'error',
+        "text": '# Timeout! Long operation.'
     }

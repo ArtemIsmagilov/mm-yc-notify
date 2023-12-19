@@ -15,6 +15,7 @@ class Conf:
     APP_URL_EXTERNAL = os.environ['APP_URL_EXTERNAL']
 
     CHECK_EVENTS = int(os.environ['CHECK_EVENTS'])
+    RANGE_DAYS = int(os.environ['RANGE_DAYS'])
 
     # quart config
     SECRET_KEY = os.environ['SECRET_KEY']

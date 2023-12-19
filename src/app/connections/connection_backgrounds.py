@@ -82,9 +82,8 @@ async def bg_update_account(
         timezone: str,
 ):
     async with get_conn() as conn:
-        await asyncio.gather(
-            YandexCalendar.remove_cals(conn, mm_user_id),
-            User.update_user(
+        await YandexCalendar.remove_cals(conn, mm_user_id)
+        await User.update_user(
                 conn,
                 mm_user_id,
                 login=login,
@@ -93,8 +92,7 @@ async def bg_update_account(
                 e_c=False,
                 ch_stat=False,
                 session=token_hex(16),
-            ),
-        )
+            )
 
 
 @app_error

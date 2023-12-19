@@ -1,23 +1,18 @@
 from datetime import datetime, UTC, timedelta
 
 
-def is_exist_conf_at_time(dt_iso: str) -> bool:
-    start_point = datetime.now(UTC)  # before 10 min(dtstart - 10 min)
-    middle_point = datetime.fromisoformat(dt_iso).astimezone(UTC)  # dtstart
-    end_point = start_point + timedelta(minutes=15)  # before 10 min + 15 min(dtstart - 10 min + 15 min)
+def is_exist_conf_at_time(dt: datetime) -> bool:
+    # now - 10 min < dt < dt + 30 min
+    start_point = datetime.now(UTC)
+    middle_point = dt.astimezone(UTC)
+    end_point = start_point + timedelta(minutes=30)
 
     return start_point < middle_point < end_point
 
 
-def start_gt_15_min(dt_iso: str) -> bool:
-    start_point = datetime.fromisoformat(dt_iso).astimezone(UTC)
-    end_point = datetime.now(UTC) + timedelta(minutes=15)
-
-    return start_point > end_point
+def start_gt_10_min(start_dt: datetime) -> bool:
+    return start_dt.astimezone(UTC) > datetime.now(UTC) + timedelta(minutes=10)
 
 
-def start_gt_now(dt_iso: str) -> bool:
-    now = datetime.now(UTC)
-    dt_start = datetime.fromisoformat(dt_iso).astimezone(UTC)
-
-    return dt_start > now
+def start_gt_now(start_dt: datetime) -> bool:
+    return start_dt.astimezone(UTC) > datetime.now(UTC)

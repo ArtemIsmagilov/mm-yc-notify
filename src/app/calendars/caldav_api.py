@@ -1,7 +1,7 @@
-from sqlalchemy.ext.asyncio import AsyncConnection
-
+from ..schemas import UserView
+from ..sql_app.crud import YandexCalendar
 from .calendar_backgrounds import run_in_background
-from ..async_wraps.async_wrap_caldav import caldav_calendar_by_cal_id, caldav_search, caldav_get_supported_components
+from ..async_wraps.async_wrap_caldav import caldav_calendar_by_cal_id, caldav_get_supported_components
 from ..decorators.account_decorators import dependency_principal, auth_required
 from .. import dict_responses
 from ..dict_responses import success_ok
@@ -15,9 +15,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.engine import Row
 import asyncio
 from typing import AsyncGenerator, Sequence
-
-from ..schemas import UserView
-from ..sql_app.crud import YandexCalendar
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 @auth_required
@@ -31,8 +29,8 @@ async def get_a_week(
     mm_username = data['context']['acting_user']['username']
     channel_id = data['context']['channel']['id']
     dt_now = datetime.now(ZoneInfo(user.timezone))
-    start = datetime(year=dt_now.year, month=dt_now.month, day=dt_now.day, tzinfo=dt_now.tzinfo)
-    end = start + timedelta(days=6)
+    start = datetime(dt_now.year, dt_now.month, dt_now.day, tzinfo=dt_now.tzinfo)
+    end = start + timedelta(days=7)
 
     asyncio.create_task(run_in_background(user.mm_user_id, channel_id, principal, start, end))
 
@@ -50,7 +48,7 @@ async def get_a_month(
     mm_username = data['context']['acting_user']['username']
     channel_id = data['context']['channel']['id']
     dt_now = datetime.now(ZoneInfo(user.timezone))
-    start = datetime(year=dt_now.year, month=dt_now.month, day=dt_now.day, tzinfo=dt_now.tzinfo)
+    start = datetime(dt_now.year, dt_now.month, dt_now.day, tzinfo=dt_now.tzinfo)
     end = start + timedelta(days=29)
 
     asyncio.create_task(run_in_background(user.mm_user_id, channel_id, principal, start, end))
@@ -129,7 +127,7 @@ async def today(
     data = await request.json
     channel_id = data['context']['channel']['id']
     dt_now = datetime.now(ZoneInfo(user.timezone))
-    start = datetime(year=dt_now.year, month=dt_now.month, day=dt_now.day, tzinfo=dt_now.tzinfo)
+    start = datetime(dt_now.year, dt_now.month, dt_now.day, tzinfo=dt_now.tzinfo)
     end = start + timedelta(days=1)
 
     asyncio.create_task(run_in_background(user.mm_user_id, channel_id, principal, start, end))
@@ -143,7 +141,7 @@ async def daily_notification(
         exist_calendars: Sequence[Calendar]
 ) -> dict:
     dt_now = datetime.now(ZoneInfo(user.timezone))
-    start = datetime(year=dt_now.year, month=dt_now.month, day=dt_now.day, tzinfo=dt_now.tzinfo)
+    start = datetime(dt_now.year, dt_now.month, dt_now.day, tzinfo=dt_now.tzinfo)
     end = start + timedelta(days=1)
 
     return await notification_views.daily_notify_view(exist_calendars, 'get_daily.md', (start, end))
@@ -153,10 +151,10 @@ async def check_exist_calendars_by_cal_id(
         conn: AsyncConnection,
         principal: Principal,
         cals: AsyncGenerator[Row, None],
-) -> set[Calendar] | dict:
+) -> list[Calendar] | dict:
     background_tasks = [asyncio.create_task(caldav_calendar_by_cal_id(principal, cal_id=c.cal_id)) async for c in cals]
 
-    cals_set = set()
+    cals_container = []
     for task in asyncio.as_completed(background_tasks):
         cal = await task
 
@@ -169,9 +167,9 @@ async def check_exist_calendars_by_cal_id(
             await YandexCalendar.remove_cal(conn, cal.id)
 
         else:
-            cals_set.add(cal)
+            cals_container.append(cal)
 
-    if not cals_set:
+    if not cals_container:
         return dict_responses.no_calendars_on_server()
 
-    return cals_set
+    return cals_container

@@ -21,23 +21,25 @@ class Conference:
         "_attendee",
         "_location",
         "_timezone",
+        "_recurrence_id",
     )
 
     def __init__(self, event: Event, timezone: str):
-        self._uid: vText = event.get("UID")
-        self._dtstart: vDDDTypes = event.get("DTSTART")
-        self._dtend: vDDDTypes = event.get("DTEND")
-        self._summary: vText = event.get("SUMMARY")
-        self._created: vDDDTypes = event.get("CREATED")
-        self._last_modified: vDDDTypes = event.get("LAST-MODIFIED")
-        self._description: vText = event.get("DESCRIPTION")
-        self._url_event: vUri = event.get("URL")
-        self._categories: vCategory = event.get("CATEGORIES")
-        self._x_telemost_conference: vText = event.get("X-TELEMOST-CONFERENCE")
-        self._organizer: vCalAddress = event.get("ORGANIZER")
-        self._attendee: list[vCalAddress, ...] = event.get("ATTENDEE")
-        self._location: vText = event.get("LOCATION")
+        self._uid: vText | None = event.get("UID")
+        self._dtstart: vDDDTypes | None = event.get("DTSTART")
+        self._dtend: vDDDTypes | None = event.get("DTEND")
+        self._summary: vText | None = event.get("SUMMARY")
+        self._created: vDDDTypes | None = event.get("CREATED")
+        self._last_modified: vDDDTypes | None = event.get("LAST-MODIFIED")
+        self._description: vText | None = event.get("DESCRIPTION")
+        self._url_event: vUri | None = event.get("URL")
+        self._categories: vCategory | None = event.get("CATEGORIES")
+        self._x_telemost_conference: vText | None = event.get("X-TELEMOST-CONFERENCE")
+        self._organizer: vCalAddress | None = event.get("ORGANIZER")
+        self._attendee: list[vCalAddress] | None = event.get("ATTENDEE")
+        self._location: vText | None = event.get("LOCATION")
         self._timezone: str = timezone
+        self._recurrence_id: list[vDDDTypes] | vDDDTypes | None = event.get('RECURRENCE-ID')
 
     def __repr__(self):
         return f"""
@@ -55,7 +57,8 @@ categories:{self.categories!r} \
 x_telemost_conference:{self.x_telemost_conference!r} \
 organizer:{self.organizer!r} \
 attendee:{self.attendee!r} \
-location:{self.location!r}\
+location:{self.location!r} \
+recurrence_id:{self.recurrence_id!r} \
 >"""
 
     @property
@@ -68,86 +71,97 @@ location:{self.location!r}\
         return shorten(self._timezone, 255)
 
     @property
-    def dtstart(self) -> str | None:
-        if self._dtstart:
-            dt = self._dtstart.dt
+    def dtstart(self) -> datetime | None:
+        attribute = self._dtstart
+        if attribute:
+            dt = attribute.dt
 
             if type(dt) is date:
                 dt = datetime(year=dt.year, month=dt.month, day=dt.day, tzinfo=ZoneInfo(self.timezone))
 
-            return shorten(dt.astimezone(ZoneInfo(self.timezone)).isoformat(), 255)
+            return dt.astimezone(ZoneInfo(self.timezone))
 
     @property
-    def dtend(self) -> str | None:
-        if self._dtend:
-            dt = self._dtend.dt
+    def dtend(self) -> datetime | None:
+        attribute = self._dtend
+        if attribute:
+            dt = attribute.dt
 
             if type(dt) is date:
                 dt = datetime(year=dt.year, month=dt.month, day=dt.day, tzinfo=ZoneInfo(self.timezone))
 
-            return shorten(dt.astimezone(ZoneInfo(self.timezone)).isoformat(), 255)
+            return dt.astimezone(ZoneInfo(self.timezone))
 
     @property
     def summary(self) -> str | None:
-        if self._summary:
-            return shorten(str(self._summary), 255)
+        attribute = self._summary
+        if attribute:
+            return shorten(str(attribute), 255)
 
     @property
-    def created(self) -> str | None:
-        if self._created:
-            dt = self._created.dt
+    def created(self) -> datetime | None:
+        attribute = self._created
+        if attribute:
+            dt = attribute.dt
 
             if type(dt) is date:
                 dt = datetime(year=dt.year, month=dt.month, day=dt.day, tzinfo=ZoneInfo(self.timezone))
 
-            return shorten(dt.astimezone(ZoneInfo(self.timezone)).isoformat(), 255)
+            return dt.astimezone(ZoneInfo(self.timezone))
 
     @property
-    def last_modified(self) -> str | None:
-        if self._last_modified:
-            dt = self._last_modified.dt
+    def last_modified(self) -> datetime | None:
+        attribute = self._last_modified
+        if attribute:
+            dt = attribute.dt
 
             if type(dt) is date:
                 dt = datetime(year=dt.year, month=dt.month, day=dt.day, tzinfo=ZoneInfo(self.timezone))
 
-            return shorten(dt.astimezone(ZoneInfo(self.timezone)).isoformat(), 255)
+            return dt.astimezone(ZoneInfo(self.timezone))
 
     @property
     def description(self) -> str | None:
-        if self._description:
-            return shorten(str(self._description), 255)
+        attribute = self._description
+        if attribute:
+            return shorten(str(attribute), 255)
 
     @property
     def url_event(self) -> str | None:
-        if self._url_event:
-            return shorten(str(self._url_event), 255)
+        attribute = self._url_event
+        if attribute:
+            return shorten(str(attribute), 255)
 
     @property
     def categories(self) -> str | None:
-        if self._categories:
-            return shorten(self._categories.to_ical().decode("utf-8"), 255)
+        attribute = self._categories
+        if attribute:
+            return shorten(attribute.to_ical().decode("utf-8"), 255)
 
     @property
     def x_telemost_conference(self) -> str | None:
-        if self._x_telemost_conference:
-            return shorten(str(self._x_telemost_conference), 255)
+        attribute = self._x_telemost_conference
+        if attribute:
+            return shorten(str(attribute), 255)
 
     @property
     def organizer(self) -> dict[str, str] | None:
-        if self._organizer:
-            result = {"email": str(self._organizer).removeprefix("mailto:")}
+        attribute = self._organizer
+        if attribute:
+            result = {"email": str(attribute).removeprefix("mailto:")}
 
-            if self._organizer.params:
-                result.update({k.lower(): v for k, v in self._organizer.params.items()})
+            if attribute.params:
+                result.update({k.lower(): v for k, v in attribute.params.items()})
 
             return result
 
     @property
     def attendee(self) -> list[dict[str, str]] | None:
-        if self._attendee:
+        attribute = self._attendee
+        if attribute:
             result = []
 
-            for at in self._attendee:
+            for at in attribute:
                 at_dict = {"email": at.removeprefix("mailto:")}
 
                 if at.params:
@@ -159,5 +173,23 @@ location:{self.location!r}\
 
     @property
     def location(self) -> str | None:
-        if self._location:
-            return shorten(str(self._location), 255)
+        attribute = self._location
+        if attribute:
+            return shorten(str(attribute), 255)
+
+    @property
+    def recurrence_id(self) -> datetime | None:
+        attribute = self._recurrence_id
+        if attribute:
+            if type(attribute) is list:
+                dt = attribute[0].dt
+            else:
+                dt = attribute.dt
+
+            if type(dt) is date:
+                dt = datetime(year=dt.year, month=dt.month, day=dt.day, tzinfo=ZoneInfo(self.timezone))
+            return dt.astimezone(ZoneInfo(self.timezone))
+
+    @property
+    def conf_id(self) -> str:
+        return f'{self.uid}__{self.recurrence_id}'

@@ -1,6 +1,6 @@
 .env
-celerybeat-schedule
-celery.log
+alembic/
+alembic.ini
 access.log
 error.log
 

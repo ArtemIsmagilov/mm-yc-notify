@@ -18,10 +18,7 @@ async def daily_notify_view(
     if not calendars:
         return dict_responses.no_calendars_on_server()
 
-    represents = [r async for r in caldav_searchers.find_conferences_in_some_cals(calendars, dates)]
-
-    if not represents:
-        return dict_responses.daily_no_conferences()
+    represents = caldav_searchers.find_conferences_in_some_cals(calendars, dates)
 
     tm = env.get_template(template)
     text = await tm.render_async(represents=represents)
@@ -49,8 +46,8 @@ async def notify_loaded_conference_view(
         template: str,
         calendar_name: str,
         loaded: str,
-        was_table: dict,
-        now_table: dict
+        was_table: str | None,
+        now_table: str | None,
 ):
     tm = env.get_template(template)
     text = await tm.render_async(calendar_name=calendar_name, was_table=was_table, now_table=now_table, loaded=loaded)

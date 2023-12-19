@@ -14,3 +14,4 @@ APScheduler==4.0.0a4
 pytest-asyncio==0.23.2
 coverage==7.3.2
 dramatiq[rabbitmq]==1.15.0
+alembic==1.13.0

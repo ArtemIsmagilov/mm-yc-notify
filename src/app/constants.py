@@ -464,4 +464,5 @@ CONFERENCE_PROPERTIES = (
     "organizer",
     "attendee",
     "location",
+    "recurrence_id",
 )

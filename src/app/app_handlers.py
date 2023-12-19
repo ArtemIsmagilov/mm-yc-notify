@@ -188,40 +188,40 @@ def bindings() -> dict:
                                             }
                                         }
                                     },
-                                    {
-                                        "location": "from_to",
-                                        "label": "from_to",
-                                        "description": "Get conference by date from start to end date",
-                                        "form": {
-                                            "title": "From start to end date",
-                                            "header": "from_to",
-                                            "icon": static_file('cal.png'),
-                                            "fields": [
-                                                {
-                                                    "name": "from_date",
-                                                    "label": "from_date",
-                                                    "type": "text",
-                                                    "subtype": "input",
-                                                    "description": "format to date: DD.MM.YYYY",
-                                                    'is_required': True,
-                                                    'hint': 'Example: 01.01.2023'
-                                                },
-                                                {
-                                                    "name": "to_date",
-                                                    "label": "to_date",
-                                                    "type": "text",
-                                                    "subtype": "input",
-                                                    "description": "format to date: DD.MM.YYYY",
-                                                    'is_required': True,
-                                                    'hint': 'Example: 01.02.2023'
-                                                },
-                                            ],
-                                            "submit": {
-                                                "path": url_for('calendars.from_to'),
-                                                'expand': EXPAND_DICT,
-                                            }
-                                        }
-                                    },
+                                    # {
+                                    #     "location": "from_to",
+                                    #     "label": "from_to",
+                                    #     "description": "Get conference by date from start to end date",
+                                    #     "form": {
+                                    #         "title": "From start to end date",
+                                    #         "header": "from_to",
+                                    #         "icon": static_file('cal.png'),
+                                    #         "fields": [
+                                    #             {
+                                    #                 "name": "from_date",
+                                    #                 "label": "from_date",
+                                    #                 "type": "text",
+                                    #                 "subtype": "input",
+                                    #                 "description": "format to date: DD.MM.YYYY",
+                                    #                 'is_required': True,
+                                    #                 'hint': 'Example: 01.01.2023'
+                                    #             },
+                                    #             {
+                                    #                 "name": "to_date",
+                                    #                 "label": "to_date",
+                                    #                 "type": "text",
+                                    #                 "subtype": "input",
+                                    #                 "description": "format to date: DD.MM.YYYY",
+                                    #                 'is_required': True,
+                                    #                 'hint': 'Example: 01.02.2023'
+                                    #             },
+                                    #         ],
+                                    #         "submit": {
+                                    #             "path": url_for('calendars.from_to'),
+                                    #             'expand': EXPAND_DICT,
+                                    #         }
+                                    #     }
+                                    # },
                                     {
                                         "location": "today",
                                         "label": "today",
