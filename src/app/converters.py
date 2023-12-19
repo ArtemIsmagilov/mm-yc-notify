@@ -38,7 +38,7 @@ def iso1_gt_iso2(iso1: str, iso2: str) -> bool:
 
 def conference_all_day(conf: Conference):
     start, end = conf.dtstart, conf.dtend
-    return (start.hour, start.minute, start.second) == (end.hour, end.minute, end.second) == (0, 0, 0) and not start - end
+    return (start.hour, start.minute, start.second) == (end.hour, end.minute, end.second) == (0, 0, 0)
 
 
 def dont_clear(iso_data: str) -> bool:
