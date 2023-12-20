@@ -235,13 +235,15 @@ async def notify_next_conference_job(session: str, conf_id: str, dtstart: str) -
                     msg = '### Bot send notification!'
 
                     conf_obj = Conference(i_event, conf_in_db.timezone)
+                    conf_tz = ZoneInfo(conf_in_db.timezone)
+
                     conf_view = ConferenceView(
                         uid=conf_in_db.uid,
-                        dtstart=conf_in_db.dtstart.astimezone(conf_in_db.timezone),
-                        dtend=conf_in_db.dtend.astimezone(conf_in_db.timezone),
+                        dtstart=conf_in_db.dtstart.astimezone(conf_tz),
+                        dtend=conf_in_db.dtend.astimezone(conf_tz),
                         summary=conf_in_db.summary,
-                        created=conf_in_db.created.astimezone(conf_in_db.timezone),
-                        last_modified=conf_in_db.last_modified.astimezone(conf_in_db.timezone),
+                        created=conf_in_db.created.astimezone(conf_tz),
+                        last_modified=conf_in_db.last_modified.astimezone(conf_tz),
                         description=conf_in_db.description,
                         url_event=conf_in_db.url_event,
                         categories=conf_in_db.categories,
