@@ -1,11 +1,12 @@
 from .. import dict_responses
 from ..calendars import caldav_searchers
-from ..calendars.conference import Conference
 
 from datetime import datetime
 from typing import Sequence
 from caldav import Calendar
 from jinja2 import Environment, PackageLoader, select_autoescape
+
+from ..schemas import ConferenceView
 
 env = Environment(loader=PackageLoader('app'), autoescape=select_autoescape(), enable_async=True)
 
@@ -31,10 +32,10 @@ async def daily_notify_view(
 async def notify_next_conference_view(
         template: str,
         calendar_name: str,
-        conf_obj: Conference
+        conf_view: ConferenceView
 ):
     tm = env.get_template(template)
-    text = await tm.render_async(calendar_name=calendar_name, c=conf_obj)
+    text = await tm.render_async(calendar_name=calendar_name, c=conf_view)
 
     return {
         'type': 'ok',

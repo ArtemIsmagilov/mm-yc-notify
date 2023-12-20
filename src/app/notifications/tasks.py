@@ -6,7 +6,7 @@ import caldav.lib.error as caldav_errors
 from caldav import Principal, Calendar
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
-from typing import Sequence, Generator
+from typing import Generator
 from ..app_handlers import static_file
 from ..async_wraps.async_wrap_caldav import (
     caldav_calendar_by_cal_id, caldav_event_by_uid, caldav_get_supported_components
@@ -21,7 +21,7 @@ from ..converters import (
     get_delay_with_dtstart, get_delay_daily, conference_all_day, past_conference, to_str_organizer, to_str_attendee
 )
 from ..notifications import notification_views
-from ..schemas import UserView
+from ..schemas import UserView, ConferenceView
 from ..sql_app.crud import YandexConference, YandexCalendar, User
 from ..sql_app.database import get_conn
 from ..notifications.worker import *
@@ -234,8 +234,27 @@ async def notify_next_conference_job(session: str, conf_id: str, dtstart: str) -
                     pretext = 'Upcoming conference!'
                     msg = '### Bot send notification!'
 
+                    conf_obj = Conference(i_event, conf_in_db.timezone)
+                    conf_view = ConferenceView(
+                        uid=conf_in_db.uid,
+                        dtstart=conf_in_db.dtstart.astimezone(conf_in_db.timezone),
+                        dtend=conf_in_db.dtend.astimezone(conf_in_db.timezone),
+                        summary=conf_in_db.summary,
+                        created=conf_in_db.created.astimezone(conf_in_db.timezone),
+                        last_modified=conf_in_db.last_modified.astimezone(conf_in_db.timezone),
+                        description=conf_in_db.description,
+                        url_event=conf_in_db.url_event,
+                        categories=conf_in_db.categories,
+                        x_telemost_conference=conf_in_db.x_telemost_conference,
+
+                        organizer=conf_obj.organizer,
+                        attendee=conf_obj.attendee,
+
+                        location=conf_in_db.location,
+                    )
+
                     represents = await notification_views.notify_next_conference_view(
-                        'first_conference.md', str(cal), Conference(i_event, user.timezone)
+                        'first_conference.md', str(cal), conf_view
                     )
                     props = {
                         "attachments": [
@@ -418,7 +437,7 @@ async def load_updated_added_deleted_events(
 
     rm_cs = {}
     async for rm_c in YandexConference.remove_conferences_not_in_confs_uid_by_cal_id(conn, cal_id, conf_ids):
-        if notify and rm_c.dtend > dt_now:
+        if notify and rm_c.start > dt_now:
             recurrence_conf = await YandexConference.get_first_conference_by_uid(conn, rm_c.uid) if rm_c.recurrence_id else None
             if not rm_c.recurrence_id or not recurrence_conf:
                 rm_cs[rm_c.uid] = rm_c
