@@ -438,7 +438,7 @@ async def load_updated_added_deleted_events(
         return
 
     rm_cs = {}
-    async for rm_c in YandexConference.remove_conferences_not_in_confs_uid_by_cal_id(conn, cal_id, conf_ids):
+    async for rm_c in YandexConference.remove_conferences_not_in_conf_ids_by_cal_id(conn, cal_id, conf_ids):
         if notify and rm_c.dtstart > dt_now:
             recurrence_conf = await YandexConference.get_first_conference_by_uid(conn, rm_c.uid) if rm_c.recurrence_id else None
             if not rm_c.recurrence_id or not recurrence_conf:

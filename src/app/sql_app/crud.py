@@ -256,7 +256,7 @@ class YandexConference:
         )
 
     @classmethod
-    async def remove_conferences_not_in_confs_uid_by_cal_id(
+    async def remove_conferences_not_in_conf_ids_by_cal_id(
             cls, conn: AsyncConnection, cal_id: str, conf_ids: set) -> AsyncGenerator[Row, None]:
         result = await conn.stream(
             yandex_conference_table

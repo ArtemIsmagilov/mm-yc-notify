@@ -118,7 +118,7 @@ conf_id:{self.conf_id!r} \
 
     def _set_categories(self, attribute: vCategory | None) -> str | None:
         if attribute:
-            return shorten(attribute.to_ical().decode("utf-8"), 255)
+            return shorten(', '.join(attribute.cats), 255)
 
     def _set_x_telemost_conference(self, attribute: vText | None) -> str | None:
         if attribute:
