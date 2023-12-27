@@ -1,11 +1,15 @@
 import asyncio, pytest, uvloop
 from caldav import Principal
 from httpx import HTTPError
+from icalendar import Event
+from icalendar.prop import vDDDTypes
+from datetime import datetime, UTC, timedelta
 
 from app.bots.bot_commands import get_user_by_username, create_user, bot
 from app.calendars.caldav_funcs import take_principal
 from app.async_wraps.async_wrap_caldav import caldav_calendar_by_name, caldav_create_calendar
 import settings
+from app.calendars.conference import Conference
 
 # init testing environments
 settings.Conf = settings.Testing
@@ -14,7 +18,8 @@ from app import create_app
 
 
 async def init_scope():
-    global test_user, mm_user_id, channel_id, test_principal, test_calendar1, test_calendar2, test_context
+    global test_user, mm_user_id, channel_id, test_principal, test_calendar1, test_calendar2, test_context, test_conference
+
 
     # create test user, if it doesn't exist
     test_user = await get_user_by_username(username=Conf.test_client_username)
@@ -48,24 +53,30 @@ async def init_scope():
     if type(test_calendar2) is dict:
         test_calendar2 = await caldav_create_calendar(test_principal, name=Conf.test_client_calendar_name2)
 
+    test_event = Event()
+    test_event['UID'] = 'test_uid'
+    test_event['DTSTART'] = vDDDTypes(datetime.now(UTC))
+    test_event['DTEND'] = vDDDTypes(datetime.now(UTC) + timedelta(days=1))
+    test_event['X-TELEMOST-CONFERENCE'] = 'test_telemost_conference'
+    test_conference = Conference(test_event, Conf.test_client_ya_timezone)
 
 if Conf.TESTING:
     asyncio.get_event_loop().run_until_complete(init_scope())
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def app():
     app = create_app()
 
     yield app
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def client(app):
     return app.test_client()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def runner(app):
     return app.test_cli_runner()
 
@@ -73,7 +84,3 @@ def runner(app):
 @pytest.fixture(scope="session")
 def event_loop_policy():
     return uvloop.EventLoopPolicy()
-
-@pytest.fixture
-def anyio_backend():
-    return 'asyncio'

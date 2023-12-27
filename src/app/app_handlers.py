@@ -91,7 +91,7 @@ def bindings() -> dict:
                                         "form": {
                                             "title": "Profile integrations with Yandex Calendar over CalDAV protocol",
                                             "header": "Connect",
-                                            "icon": static_file("cal.png"),
+                                            "icon": static_file('cal.png'),
                                             "submit": {
                                                 "path": url_for("connections.profile_account"),
                                                 "expand": EXPAND_DICT,

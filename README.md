@@ -208,7 +208,63 @@
   ```
 - запускаем тесты в папке `src`
   ```bash
-  pytest -svv
+  coverage run -m pytest
+  ```
+  ```bash
+  coverage report -m
+  ```
+  ```text
+    Name                                                Stmts   Miss  Cover   Missing
+    ---------------------------------------------------------------------------------
+    src/app/__init__.py                                    49      3    94%   36, 40, 44
+    src/app/app_handlers.py                                14      0   100%
+    src/app/async_wraps/async_wrap_caldav.py               27      3    89%   11, 18-19
+    src/app/bots/bot_commands.py                           34      4    88%   11, 32, 49, 54
+    src/app/calendars/caldav_api.py                        97     14    86%   66-88, 173
+    src/app/calendars/caldav_filters.py                    10      6    40%   6-10, 14, 18
+    src/app/calendars/caldav_funcs.py                      15      2    87%   20-22
+    src/app/calendars/caldav_searchers.py                  21      5    76%   33-37
+    src/app/calendars/calendar_app.py                      15      0   100%
+    src/app/calendars/calendar_backgrounds.py              25      8    68%   18-24, 28-29
+    src/app/calendars/calendar_views.py                    10      1    90%   11
+    src/app/calendars/conference.py                        96     33    66%   47, 76, 85, 91, 95-100, 104-109, 113, 117, 121, 129-134, 138-148, 152, 156-163
+    src/app/checks/check_app.py                             9      0   100%
+    src/app/checks/check_my_account.py                     13      0   100%
+    src/app/checks/check_my_scheduler.py                   14      0   100%
+    src/app/connections/connection_app.py                  24      3    88%   20, 25, 35
+    src/app/connections/connection_backgrounds.py          40      8    80%   24, 40, 43-50, 65, 86
+    src/app/connections/connection_handlers.py             62      7    89%   49-52, 68, 138-141
+    src/app/constants.py                                    3      0   100%
+    src/app/converters.py                                  79     46    42%   19-20, 30, 34-36, 40-41, 46-48, 55-70, 77-88, 92-97, 101, 111-114, 118, 126, 130
+    src/app/decorators/account_decorators.py               65      3    95%   77-79
+    src/app/dict_responses.py                              48      7    85%   49, 106, 120, 127, 148, 155, 162
+    src/app/notifications/notification_app.py              24      0   100%
+    src/app/notifications/notification_backgrounds.py      46      3    93%   44-46, 84
+    src/app/notifications/notification_handlers.py         99      4    96%   37, 112, 174, 251
+    src/app/notifications/notification_views.py            23      7    70%   20, 37-40, 53-56
+    src/app/notifications/tasks.py                        212    102    52%   35-36, 42-43, 49-50, 56-57, 63-64, 100, 116, 135-183, 198, 223-278, 286, 292, 299, 336-435, 441-455
+    src/app/notifications/worker.py                        14      0   100%
+    src/app/schemas.py                                     30      0   100%
+    src/app/sql_app/crud.py                                87      9    90%   149, 173-183, 194, 244, 261-272, 276
+    src/app/sql_app/database.py                             8      0   100%
+    src/app/sql_app/db_CLI.py                              21     10    52%   15-20, 24-25, 29-31
+    src/app/sql_app/models.py                               5      0   100%
+    src/app/validators.py                                   8      2    75%   8-9
+    src/settings.py                                        35      0   100%
+    src/tests/__init__.py                                   0      0   100%
+    src/tests/additional_funcs.py                          33      2    94%   67-68
+    src/tests/conftest.py                                  51      4    92%   28, 50, 54, 81
+    src/tests/test_app.py                                 633      2    99%   1226-1227
+    ---------------------------------------------------------------------------------
+    TOTAL                                                2099    298    86%
+  ```
+  Подробная информация в html
+  ```bash
+  coverage html
+  ```
+  Помимо тестов также требуется соблюдение PEP8
+  ```bash
+  flake8 src/
   ```
 
 ## Интеграция в производственной среде

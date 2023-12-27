@@ -1,5 +1,5 @@
 from dramatiq.middleware import Prometheus
-import dramatiq
+import dramatiq, os
 from dramatiq.middleware.asyncio import AsyncIO
 from dramatiq.brokers.rabbitmq import RabbitmqBroker
 
