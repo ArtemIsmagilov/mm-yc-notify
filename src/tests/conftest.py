@@ -2,7 +2,7 @@ import asyncio, pytest, uvloop
 from caldav import Principal
 from httpx import HTTPError
 from icalendar import Event
-from icalendar.prop import vDDDTypes
+from icalendar.prop import vDDDTypes, vCategory, vCalAddress
 from datetime import datetime, UTC, timedelta
 
 from app.bots.bot_commands import get_user_by_username, create_user, bot
@@ -57,7 +57,18 @@ async def init_scope():
     test_event['UID'] = 'test_uid'
     test_event['DTSTART'] = vDDDTypes(datetime.now(UTC))
     test_event['DTEND'] = vDDDTypes(datetime.now(UTC) + timedelta(days=1))
+    test_event['SUMMARY'] = 'test_summary'
+    test_event['CREATED'] = test_event['DTSTART']
+    test_event['LAST-MODIFIED'] = test_event['DTSTART']
+    test_event['DESCRIPTION'] = 'test_description'
+    test_event['URL'] = 'test_url'
+    test_event['CATEGORIES'] = vCategory('test_category')
     test_event['X-TELEMOST-CONFERENCE'] = 'test_telemost_conference'
+    test_event['ORGANIZER'] = vCalAddress('mailto:test_mail')
+    test_event['ATTENDEE'] = [test_event['ORGANIZER'], vCalAddress('mailto:test_mail2')]
+    test_event['LOCATION'] = 'test_location'
+    test_event['RECURRENCE-ID'] = test_event['DTSTART']
+
     test_conference = Conference(test_event, Conf.test_client_ya_timezone)
 
 if Conf.TESTING:

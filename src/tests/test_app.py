@@ -77,6 +77,14 @@ class TestApp:
         assert response.status_code == 200
         assert json_response['app_id'] == 'yandex-calendar'
 
+    async def test_navigate_to_telemost(self, client, post_fix='/navigate_to_telemost'):
+        response = await client.post(post_fix)
+
+        json_response = await response.json
+
+        assert response.status_code == 200
+        assert json_response['type'] == 'navigate'
+
 
 class TestConnections:
     endpoint = "/connections/"
@@ -207,6 +215,24 @@ class TestConnections:
         assert response.status_code == 200
         assert json_response == dict_responses.success_ok(Conf.test_client_username)
 
+    async def test_really_update_account(self, client, post_fix="really_update_account"):
+        data = deepcopy(test_context)
+
+        response = await client.post(self.endpoint + post_fix, json=data)
+        json_response = await response.json
+
+        assert response.status_code == 200
+        assert json_response['type'] == 'form'
+
+    async def test_update_account_form(self, client, post_fix='update_account_form'):
+        data = deepcopy(test_context)
+
+        response = await client.post(self.endpoint + post_fix, json=data)
+        json_response = await response.json
+
+        assert response.status_code == 200
+        assert json_response['type'] == 'form'
+
     async def test_not_exist_account_update_account(self, client, post_fix="update_account"):
         data = deepcopy(test_context)
         data.update({'values': {
@@ -265,6 +291,15 @@ class TestConnections:
         assert response.status_code == 200
         assert json_response == dict_responses.success_update_integration(Conf.test_client_username)
 
+    async def test_really_delete_account(self, client, post_fix='really_delete_account'):
+        data = deepcopy(test_context)
+
+        response = await client.post(self.endpoint + post_fix, json=data)
+        json_response = await response.json
+
+        assert response.status_code == 200
+        assert json_response['type'] == 'form'
+
     async def test_unauth_disconnect_account(self, client, post_fix="disconnect_account"):
         data = test_context
 
@@ -275,7 +310,7 @@ class TestConnections:
         assert response.status_code == 200
         assert json_response == dict_responses.unauth_integration(Conf.test_client_username)
 
-    async def test_success_delete_account_disconnect_account(self, client, post_fix="disconnect_account"):
+    async def test_success_disconnect_account(self, client, post_fix="disconnect_account"):
         data = test_context
 
         await increase_user()

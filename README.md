@@ -202,13 +202,13 @@
 ## Тесты
 
 - предварительно у вас должен быть запущен mattermost, psql контейнеры, у бота должны быть токен и права.
-- очищаем БД в `src/psql`
+- очищаем БД в `src/`
   ```bash
-  sudo flask init-db -c
+  sudo quart init-db -c
   ```
 - запускаем тесты в папке `src`
   ```bash
-  coverage run -m pytest
+  coverage run -m pytest --cache-clear
   ```
   ```bash
   coverage report -m
