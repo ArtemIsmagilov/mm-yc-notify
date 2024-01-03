@@ -1,12 +1,12 @@
-import asyncio, json, logging
+import asyncio, json, logging, caldav.lib.error as caldav_errors
 from dramatiq import actor
 from textwrap import shorten
 from datetime import timedelta, datetime, UTC
-import caldav.lib.error as caldav_errors
 from caldav import Principal, Calendar
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
 from typing import Generator
+from zoneinfo import ZoneInfo
 
 from ..app_handlers import static_file
 from ..async_wraps.async_wrap_caldav import (
@@ -22,11 +22,10 @@ from ..converters import (
     get_delay_with_dtstart, get_delay_daily, conference_all_day, past_conference, to_str_organizer, to_str_attendee
 )
 from ..notifications import notification_views
-from ..schemas import UserView, ConferenceView
+from ..schemas import UserInDb, ConferenceView
 from ..sql_app.crud import YandexConference, YandexCalendar, User
 from ..sql_app.database import get_conn
 from ..notifications.worker import *
-from zoneinfo import ZoneInfo
 from settings import Conf
 
 
@@ -64,7 +63,7 @@ async def task4(session: str, latest_custom_status: str):
     await return_latest_custom_status_job(session, latest_custom_status)
 
 
-async def _load_changes_events(conn: AsyncConnection, principal: Principal, user: UserView, user_cal_in_db: Row):
+async def _load_changes_events(conn: AsyncConnection, principal: Principal, user: UserInDb, user_cal_in_db: Row):
     cal_in_server = await caldav_calendar_by_cal_id(principal, cal_id=user_cal_in_db.cal_id)
 
     dt_start = datetime.now(ZoneInfo(user.timezone)).replace(microsecond=0)
@@ -83,16 +82,7 @@ async def _load_changes_events(conn: AsyncConnection, principal: Principal, user
 async def check_events_job():
     async with get_conn() as conn:
         async for user in User.all_users(conn):
-            user_view = UserView(
-                user.mm_user_id,
-                user.login,
-                user.token,
-                user.timezone,
-                user.e_c,
-                user.ch_stat,
-                user.session,
-                user.status
-            )
+            user_view = UserInDb(user)
             principal = await take_principal(user_view.login, user_view.token)
             if type(principal) is dict:
 
@@ -321,7 +311,7 @@ async def daily_notification_job(session: str, hour: int, minute: int):
 
 async def load_updated_added_deleted_events(
         conn: AsyncConnection,
-        user: UserView,
+        user: UserInDb,
         cal_confs: tuple[Calendar, Generator[Conference, None, None]] | None,
         notify=True
 ):

@@ -1,17 +1,18 @@
-from dataclasses import dataclass
 from datetime import datetime
+from sqlalchemy import Row
+from dataclasses import dataclass
 
 
-@dataclass
-class UserView:
-    mm_user_id: str | None = None
-    login: str | None = None
-    token: str | None = None
-    timezone: str | None = None
-    e_c: bool | None = None
-    ch_stat: bool | None = None
-    session: str | None = None
-    status: str | None = None
+class UserInDb:
+    def __init__(self, user: Row):
+        self.mm_user_id: str | None = user.mm_user_id
+        self.login: str | None = user.login
+        self.token: str | None = user.token
+        self.timezone: str | None = user.timezone
+        self.e_c: bool | None = user.e_c
+        self.ch_stat: bool | None = user.ch_stat
+        self.session: str | None = user.session
+        self.status: str | None = user.status
 
 
 @dataclass

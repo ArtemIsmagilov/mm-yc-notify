@@ -6,7 +6,7 @@ from ..dict_responses import (
     success_remove_integration, success_create_integration, success_update_integration, success_ok
 )
 from ..connections import connection_backgrounds
-from ..schemas import UserView
+from ..schemas import UserInDb
 
 import asyncio
 from quart import url_for, request
@@ -113,7 +113,7 @@ def update_account_form() -> dict:
 
 
 @auth_required
-async def update_account(conn: AsyncConnection, user: UserView) -> dict:
+async def update_account(conn: AsyncConnection, user: UserInDb) -> dict:
     data = await request.json
     values = data['values']
 
@@ -153,7 +153,7 @@ async def really_delete_account() -> dict:
 
 
 @auth_required
-async def delete_account(conn: AsyncConnection, user: UserView) -> dict:
+async def delete_account(conn: AsyncConnection, user: UserInDb) -> dict:
     data = await request.json
     mm_user_id = data['context']['acting_user']['id']
     mm_username = data['context']['acting_user']['username']

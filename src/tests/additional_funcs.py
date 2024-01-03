@@ -1,10 +1,10 @@
 from secrets import token_hex
 from datetime import datetime
 
-from app.schemas import UserView
 from .conftest import mm_user_id
 from app.sql_app.database import get_conn
 from app.sql_app.crud import User, YandexCalendar, YandexConference
+from app.schemas import UserInDb
 from settings import Conf
 
 
@@ -42,16 +42,7 @@ async def get_user():
     async with get_conn() as conn:
         user = await User.get_user(conn, mm_user_id)
         if user:
-            return UserView(
-                mm_user_id=user.mm_user_id,
-                login=user.login,
-                token=user.token,
-                timezone=user.timezone,
-                e_c=user.e_c,
-                ch_stat=user.ch_stat,
-                session=user.session,
-                status=user.status,
-            )
+            return UserInDb(user)
 
 
 async def increase_calendar(cal_id: str):

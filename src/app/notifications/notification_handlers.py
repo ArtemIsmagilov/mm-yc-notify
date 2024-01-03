@@ -5,7 +5,7 @@ from ..async_wraps.async_wrap_caldav import caldav_all_calendars
 from ..constants import EXPAND_DICT
 from ..converters import client_id_calendar
 from ..decorators.account_decorators import dependency_principal, auth_required
-from ..schemas import UserView
+from ..schemas import UserInDb
 from ..sql_app.crud import YandexCalendar
 from ..validators import is_valid_clock
 
@@ -20,7 +20,7 @@ from caldav import Calendar, Principal
 @dependency_principal
 async def create_notification(
         conn: AsyncConnection,
-        user: UserView,
+        user: UserInDb,
         principal: Principal,
 ) -> dict:
     data = await request.json
@@ -95,7 +95,7 @@ async def create_notification(
 @dependency_principal
 async def continue_create_notification(
         conn: AsyncConnection,
-        user: UserView,
+        user: UserInDb,
         principal: Principal,
 ) -> dict:
     data = await request.json
@@ -157,7 +157,7 @@ async def really_update_notification() -> dict:
 @dependency_principal
 async def update_notification(
         conn: AsyncConnection,
-        user: UserView,
+        user: UserInDb,
         principal: Principal,
 ) -> dict:
     data = await request.json
@@ -232,7 +232,7 @@ async def update_notification(
 @dependency_principal
 async def continue_update_notification(
         conn: AsyncConnection,
-        user: UserView,
+        user: UserInDb,
         principal: Principal,
 ) -> dict:
     await YandexCalendar.remove_cals(conn, user.mm_user_id)
@@ -293,7 +293,7 @@ async def really_delete_notification() -> dict:
 @auth_required
 async def delete_notification(
         conn: AsyncConnection,
-        user: UserView,
+        user: UserInDb,
 ) -> dict:
     data = await request.json
     context = data['context']

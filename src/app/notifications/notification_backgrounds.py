@@ -12,14 +12,14 @@ from ..calendars.caldav_searchers import find_conferences_in_one_cal
 from ..converters import get_h_m_utc, get_delay_daily
 from ..decorators.account_decorators import app_error
 from ..notifications import tasks
-from ..schemas import UserView
+from ..schemas import UserInDb
 from ..sql_app.crud import User, YandexCalendar
 from ..sql_app.database import get_conn
 
 
 @app_error
 async def bg_continue_create_notification(
-        user: UserView,
+        user: UserInDb,
         principal: Principal,
         cals_form: list,
         daily_clock: str,
@@ -63,7 +63,7 @@ async def bg_continue_create_notification(
 
 @app_error
 async def bg_continue_update_notification(
-        user: UserView,
+        user: UserInDb,
         principal: Principal,
         cals_form: list,
         daily_clock: str,

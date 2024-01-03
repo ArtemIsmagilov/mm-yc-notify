@@ -6,16 +6,16 @@
 # 4. python -m app.notifications.task0_scheduler
 # 5. dramatiq app.notifications.tasks
 
-import asyncio, pytest
-import json
+import asyncio, pytest, json
 from copy import deepcopy
 
 from app.async_wraps.async_wrap_caldav import caldav_create_calendar, caldav_calendar_by_name
 from app.converters import get_h_m_utc
 from app import dict_responses
-from app.notifications.tasks import daily_notification_job, notify_next_conference_job, change_status_job, \
-    return_latest_custom_status_job, check_events_job
-
+from app.notifications.tasks import (
+    daily_notification_job, notify_next_conference_job, change_status_job, return_latest_custom_status_job,
+    check_events_job
+)
 from .additional_funcs import (
     decrease_user, increase_user, increase_calendar, modify_user, increase_conference, get_user, get_calendar
 )

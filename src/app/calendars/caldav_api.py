@@ -1,4 +1,4 @@
-from ..schemas import UserView
+from ..schemas import UserInDb
 from ..sql_app.crud import YandexCalendar
 from .calendar_backgrounds import run_in_background
 from ..async_wraps.async_wrap_caldav import caldav_calendar_by_cal_id, caldav_get_supported_components
@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 @dependency_principal
 async def get_a_week(
         conn: AsyncConnection,
-        user: UserView,
+        user: UserInDb,
         principal: Principal,
 ) -> dict:
     data = await request.json
@@ -41,7 +41,7 @@ async def get_a_week(
 @dependency_principal
 async def get_a_month(
         conn: AsyncConnection,
-        user: UserView,
+        user: UserInDb,
         principal: Principal,
 ) -> dict:
     data = await request.json
@@ -60,7 +60,7 @@ async def get_a_month(
 @dependency_principal
 async def from_to(
         conn: AsyncConnection,
-        user: UserView,
+        user: UserInDb,
         principal: Principal,
 ) -> dict:
     data = await request.json
@@ -92,7 +92,7 @@ async def from_to(
 @dependency_principal
 async def current(
         conn: AsyncConnection,
-        user: UserView,
+        user: UserInDb,
         principal: Principal,
 ) -> dict:
     data = await request.json
@@ -121,7 +121,7 @@ async def current(
 @dependency_principal
 async def today(
         conn: AsyncConnection,
-        user: UserView,
+        user: UserInDb,
         principal: Principal,
 ) -> dict:
     data = await request.json
@@ -137,7 +137,7 @@ async def today(
 
 async def daily_notification(
         principal: Principal,
-        user: UserView,
+        user: UserInDb,
         exist_calendars: Sequence[Calendar]
 ) -> dict:
     dt_now = datetime.now(ZoneInfo(user.timezone))
