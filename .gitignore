@@ -3,6 +3,7 @@ alembic/
 alembic.ini
 access.log
 error.log
+venv312/
 
 postgres/
 .idea

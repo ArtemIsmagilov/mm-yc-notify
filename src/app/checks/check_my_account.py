@@ -1,6 +1,9 @@
 from quart import request
 
-from ..dict_responses import is_enable_integration, is_disable_integration
+from ..dict_responses import (
+    is_enable_integration,
+    is_disable_integration
+)
 from ..sql_app.database import get_conn
 from ..sql_app.crud import User
 

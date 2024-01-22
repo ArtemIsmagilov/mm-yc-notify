@@ -4,9 +4,15 @@ from secrets import token_hex
 from ..bots.bot_commands import send_ephemeral_msg_client
 from ..calendars import caldav_api
 from ..calendars.caldav_funcs import take_principal
-from ..converters import client_id_calendar, create_table_md
+from ..converters import (
+    client_id_calendar,
+    create_table_md
+)
 from ..decorators.account_decorators import app_error
-from ..sql_app.crud import User, YandexCalendar
+from ..sql_app.crud import (
+    User,
+    YandexCalendar
+)
 from ..sql_app.database import get_conn
 
 

@@ -1,6 +1,6 @@
-from ..calendars import caldav_api
-
 from quart import Blueprint
+
+from ..calendars import caldav_api
 
 bp = Blueprint('calendars', __name__, url_prefix='/calendars')
 
@@ -23,7 +23,6 @@ async def current() -> dict:
 @bp.post('today')
 async def today() -> dict:
     return await caldav_api.today()
-
 
 # @bp.post('from_to')
 # async def from_to() -> dict:

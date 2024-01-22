@@ -3,9 +3,13 @@ from datetime import datetime
 
 from .conftest import mm_user_id
 from app.sql_app.database import get_conn
-from app.sql_app.crud import User, YandexCalendar, YandexConference
+from app.sql_app.crud import (
+    User,
+    YandexCalendar,
+    YandexConference
+)
 from app.schemas import UserInDb
-from settings import Conf
+from app.settings import Conf
 
 
 async def increase_user():

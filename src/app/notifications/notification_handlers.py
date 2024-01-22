@@ -1,19 +1,29 @@
+import asyncio
+from typing import Generator
+
+from quart import (
+    render_template,
+    url_for, request
+)
+from sqlalchemy.ext.asyncio import AsyncConnection
+from caldav import (
+    Calendar,
+    Principal
+)
+
 from . import notification_backgrounds
 from .. import dict_responses
 from ..app_handlers import static_file
 from ..async_wraps.async_wrap_caldav import caldav_all_calendars
 from ..constants import EXPAND_DICT
 from ..converters import client_id_calendar
-from ..decorators.account_decorators import dependency_principal, auth_required
+from ..decorators.account_decorators import (
+    dependency_principal,
+    auth_required
+)
 from ..schemas import UserInDb
 from ..sql_app.crud import YandexCalendar
 from ..validators import is_valid_clock
-
-import asyncio
-from typing import Generator
-from quart import render_template, url_for, request
-from sqlalchemy.ext.asyncio import AsyncConnection
-from caldav import Calendar, Principal
 
 
 @auth_required

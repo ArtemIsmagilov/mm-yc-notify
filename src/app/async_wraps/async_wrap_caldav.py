@@ -1,5 +1,11 @@
 import asyncio
-from caldav import Principal, Calendar, DAVClient, CalendarObjectResource
+
+from caldav import (
+    Principal,
+    Calendar,
+    DAVClient,
+    CalendarObjectResource
+)
 import caldav.lib.error as caldav_errs
 
 from .. import dict_responses

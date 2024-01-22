@@ -1,19 +1,29 @@
 from secrets import token_hex
-from caldav import Principal
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta
+)
 from zoneinfo import ZoneInfo
 import asyncio
+
+from caldav import Principal
 import caldav.lib.error as caldav_errs
 
-from settings import Conf
+from ..settings import Conf
 from .. import dict_responses
 from ..async_wraps.async_wrap_caldav import caldav_calendar_by_cal_id
 from ..calendars.caldav_searchers import find_conferences_in_one_cal
-from ..converters import get_h_m_utc, get_delay_daily
+from ..converters import (
+    get_h_m_utc,
+    get_delay_daily
+)
 from ..decorators.account_decorators import app_error
 from ..notifications import tasks
 from ..schemas import UserInDb
-from ..sql_app.crud import User, YandexCalendar
+from ..sql_app.crud import (
+    User,
+    YandexCalendar
+)
 from ..sql_app.database import get_conn
 
 
@@ -29,7 +39,7 @@ async def bg_continue_create_notification(
     h, m = get_h_m_utc(daily_clock, user.timezone)
 
     result_cals_cal_id = await asyncio.gather(*(
-        asyncio.create_task(caldav_calendar_by_cal_id(principal, cal_id=c['value'])) for c in cals_form
+        caldav_calendar_by_cal_id(principal, cal_id=c['value']) for c in cals_form
     ))
 
     dt_start = datetime.now(ZoneInfo(user.timezone)).replace(microsecond=0)
@@ -37,7 +47,7 @@ async def bg_continue_create_notification(
 
     try:
         result_cals_confs = await asyncio.gather(*(
-            asyncio.create_task(find_conferences_in_one_cal(result_cal, (dt_start, dt_end)))
+            find_conferences_in_one_cal(result_cal, (dt_start, dt_end))
             for result_cal in result_cals_cal_id
         ))
 

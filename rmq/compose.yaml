@@ -1,13 +1,18 @@
 version: "3.9"
+
 services:
+
   rabbitmq:
+
     image: rabbitmq:3-management-alpine
+
     hostname: 'my-rabbit'
+
     ports:
-        - 5672:5672
-        - 15672:15672
+      - 5672:5672
+      - 15672:15672
+
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
       - RABBITMQ_DEFAULT_VHOST=my_vhost
-      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit disk_free_limit 1147483648 heartbeat 0 consumer_timeout 36000000

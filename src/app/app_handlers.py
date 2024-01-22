@@ -1,6 +1,14 @@
-from .constants import EXPAND_DICT, UTCs
-from settings import Conf
-from quart import url_for, render_template, request
+from quart import (
+    url_for,
+    render_template,
+    request,
+)
+
+from .constants import (
+    EXPAND_DICT,
+    UTCs,
+)
+from .settings import Conf
 
 
 def static_file(filename) -> str:
@@ -343,7 +351,7 @@ def manifest() -> dict:
     return {
         'app_id': 'yandex-calendar',
         'homepage_url': 'https://github.com/ArtemIsmagilov/mm-yc-notify',
-        'version': 'v1.0.5',
+        'version': 'v1.0.6',
         'display_name': 'Yandex Calendar',
         'description': 'Integration your yandex calendar with Mattermost server on protocol CalDAV',
         'icon': 'cal.png',

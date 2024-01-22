@@ -1,11 +1,11 @@
-from .. import dict_responses
-from ..calendars import caldav_searchers
-
 from datetime import datetime
 from typing import Sequence
+
 from caldav import Calendar
 from jinja2 import Environment, PackageLoader, select_autoescape
 
+from .. import dict_responses
+from ..calendars import caldav_searchers
 from ..schemas import ConferenceView
 
 env = Environment(loader=PackageLoader('app'), autoescape=select_autoescape(), enable_async=True)

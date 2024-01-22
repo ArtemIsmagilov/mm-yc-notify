@@ -1,9 +1,12 @@
 import caldav
-from caldav import Principal
 import caldav.lib.error as caldav_errors
+from caldav import Principal
 
 from ..async_wraps.async_wrap_caldav import caldav_principal
-from ..dict_responses import incorrect_principal, dav_error
+from ..dict_responses import (
+    incorrect_principal,
+    dav_error
+)
 
 
 async def take_principal(login: str, token: str) -> Principal | dict:

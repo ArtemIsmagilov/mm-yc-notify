@@ -1,7 +1,8 @@
 import asyncio
 from asyncio.exceptions import CancelledError
+
 from ..notifications.tasks import task0
-from settings import Conf
+from ..settings import Conf
 
 
 # python -m app.notifications.task0_scheduler

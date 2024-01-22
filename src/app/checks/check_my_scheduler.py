@@ -2,7 +2,10 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from quart import request
 
 from ..decorators.account_decorators import auth_required
-from ..dict_responses import is_disable_scheduler, is_enable_scheduler
+from ..dict_responses import (
+    is_disable_scheduler,
+    is_enable_scheduler
+)
 from ..schemas import UserInDb
 from ..sql_app.crud import YandexCalendar
 

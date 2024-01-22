@@ -1,9 +1,14 @@
 from typing import AsyncGenerator
-from sqlalchemy.ext.asyncio import AsyncConnection
-from sqlalchemy.engine import Row
 from datetime import datetime
 
-from ..sql_app.models import user_account_table, yandex_calendar_table, yandex_conference_table
+from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.engine import Row
+
+from ..sql_app.models import (
+    user_account_table,
+    yandex_calendar_table,
+    yandex_conference_table
+)
 
 
 class User:

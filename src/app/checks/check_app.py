@@ -1,5 +1,9 @@
-from ..checks import check_my_account, check_my_scheduler
 from quart import Blueprint
+
+from ..checks import (
+    check_my_account,
+    check_my_scheduler
+)
 
 bp = Blueprint('checks', __name__, url_prefix='/checks')
 

@@ -1,9 +1,12 @@
-def create_app(test_config=None):
-    from quart import Quart
-    import logging, os
+def create_app(test_config='app.settings.Conf'):
+    import logging
+    import os
 
-    app = Quart(__name__, static_url_path='/static', static_folder='./static')
-    app.testing = True
+    from quart import Quart
+
+    app = Quart(__name__, static_url_path='/static')
+
+    app.config.from_object(test_config)
     os.makedirs(app.instance_path, exist_ok=True)
 
     @app.get('/manifest.json')
@@ -44,6 +47,7 @@ def create_app(test_config=None):
         await engine.dispose()
 
     from .sql_app.database import engine
+
     from . import app_handlers
 
     from .connections import connection_app
@@ -65,13 +69,5 @@ def create_app(test_config=None):
     from .sql_app import db_CLI
 
     db_CLI.init_app(app)
-
-    from settings import Conf
-
-    logging.basicConfig(
-        level=Conf.LOG_LEVEL,
-        format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
-        datefmt='%d-%m-%Y %H:%M:%S'
-    )
 
     return app

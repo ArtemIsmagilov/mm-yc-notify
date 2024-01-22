@@ -216,47 +216,47 @@
   ```text
     Name                                                Stmts   Miss  Cover   Missing
     ---------------------------------------------------------------------------------
-    src/app/__init__.py                                    49      3    94%   36, 40, 44
+    src/app/__init__.py                                    48      2    96%   43, 47
     src/app/app_handlers.py                                14      0   100%
-    src/app/async_wraps/async_wrap_caldav.py               27      3    89%   11, 18-19
-    src/app/bots/bot_commands.py                           34      4    88%   11, 32, 49, 54
-    src/app/calendars/caldav_api.py                        97     14    86%   66-88, 173
-    src/app/calendars/caldav_filters.py                    10      6    40%   6-10, 14, 18
-    src/app/calendars/caldav_funcs.py                      15      2    87%   20-22
-    src/app/calendars/caldav_searchers.py                  21      5    76%   33-37
+    src/app/async_wraps/async_wrap_caldav.py               27      3    89%   17, 24-25
+    src/app/bots/bot_commands.py                           34      4    88%   12, 33, 50, 55
+    src/app/calendars/caldav_api.py                        97     14    86%   73-95, 180
+    src/app/calendars/caldav_filters.py                    10      6    40%   10-14, 18, 22
+    src/app/calendars/caldav_funcs.py                      15      2    87%   23-25
+    src/app/calendars/caldav_searchers.py                  21      5    76%   41-45
     src/app/calendars/calendar_app.py                      15      0   100%
-    src/app/calendars/calendar_backgrounds.py              25      8    68%   18-24, 28-29
-    src/app/calendars/calendar_views.py                    10      1    90%   11
-    src/app/calendars/conference.py                        96     33    66%   47, 76, 85, 91, 95-100, 104-109, 113, 117, 121, 129-134, 138-148, 152, 156-163
+    src/app/calendars/calendar_backgrounds.py              25      8    68%   22-28, 32-33
+    src/app/calendars/calendar_views.py                    11      1    91%   12
+    src/app/calendars/conference.py                        96      9    91%   25, 35, 50, 60, 90, 103, 118, 123, 170
     src/app/checks/check_app.py                             9      0   100%
     src/app/checks/check_my_account.py                     13      0   100%
     src/app/checks/check_my_scheduler.py                   14      0   100%
-    src/app/connections/connection_app.py                  24      3    88%   20, 25, 35
-    src/app/connections/connection_backgrounds.py          40      8    80%   24, 40, 43-50, 65, 86
-    src/app/connections/connection_handlers.py             62      7    89%   49-52, 68, 138-141
+    src/app/connections/connection_app.py                  24      0   100%
+    src/app/connections/connection_backgrounds.py          40      7    82%   46, 49-56, 71, 92
+    src/app/connections/connection_handlers.py             62      0   100%
     src/app/constants.py                                    3      0   100%
-    src/app/converters.py                                  79     46    42%   19-20, 30, 34-36, 40-41, 46-48, 55-70, 77-88, 92-97, 101, 111-114, 118, 126, 130
-    src/app/decorators/account_decorators.py               65      3    95%   77-79
+    src/app/converters.py                                  80     46    42%   25-26, 36, 40-42, 46-47, 52-54, 61-76, 83-94, 98-103, 107, 117-120, 124, 132, 136
+    src/app/decorators/account_decorators.py               66      5    92%   74-75, 87-89
     src/app/dict_responses.py                              48      7    85%   49, 106, 120, 127, 148, 155, 162
     src/app/notifications/notification_app.py              24      0   100%
-    src/app/notifications/notification_backgrounds.py      46      3    93%   44-46, 84
-    src/app/notifications/notification_handlers.py         99      4    96%   37, 112, 174, 251
+    src/app/notifications/notification_backgrounds.py      46      3    93%   54-56, 94
+    src/app/notifications/notification_handlers.py         99      4    96%   47, 122, 184, 261
     src/app/notifications/notification_views.py            23      7    70%   20, 37-40, 53-56
-    src/app/notifications/tasks.py                        212    102    52%   35-36, 42-43, 49-50, 56-57, 63-64, 100, 116, 135-183, 198, 223-278, 286, 292, 299, 336-435, 441-455
+    src/app/notifications/tasks.py                        214    103    52%   66-67, 73-74, 80-81, 87-88, 94-95, 107-108, 122, 138, 157-205, 220, 245-300, 313, 320, 357-456, 462-476
     src/app/notifications/worker.py                        14      0   100%
-    src/app/schemas.py                                     30      0   100%
-    src/app/sql_app/crud.py                                87      9    90%   149, 173-183, 194, 244, 261-272, 276
+    src/app/schemas.py                                     31      0   100%
+    src/app/settings.py                                    39      0   100%
+    src/app/sql_app/crud.py                                87     10    89%   154, 178-188, 192-199, 249, 266-277, 281
     src/app/sql_app/database.py                             8      0   100%
-    src/app/sql_app/db_CLI.py                              21     10    52%   15-20, 24-25, 29-31
+    src/app/sql_app/db_CLI.py                              22     10    55%   20-25, 29-30, 34-36
     src/app/sql_app/models.py                               5      0   100%
-    src/app/validators.py                                   8      2    75%   8-9
-    src/settings.py                                        35      0   100%
+    src/app/validators.py                                   8      2    75%   9-10
     src/tests/__init__.py                                   0      0   100%
-    src/tests/additional_funcs.py                          33      2    94%   67-68
-    src/tests/conftest.py                                  51      4    92%   28, 50, 54, 81
-    src/tests/test_app.py                                 633      2    99%   1226-1227
+    src/tests/additional_funcs.py                          33      2    94%   62-63
+    src/tests/conftest.py                                  64      4    94%   47, 69, 73, 112
+    src/tests/test_app.py                                 654      0   100%
     ---------------------------------------------------------------------------------
-    TOTAL                                                2099    298    86%
+    TOTAL                                                2143    264    88%
   ```
   Подробная информация в html
   ```bash
@@ -635,6 +635,7 @@
 - покрыть код тестами
 - выявить уязвимости
 - желательна переработка кода
+- добавить автоматизацию тестов и деплоя на сервер (CI/CD) через Github workflows
 
 ## Благодарности
 

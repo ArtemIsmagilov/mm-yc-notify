@@ -1,21 +1,28 @@
-from ..schemas import UserInDb
-from ..sql_app.crud import YandexCalendar
-from .calendar_backgrounds import run_in_background
-from ..async_wraps.async_wrap_caldav import caldav_calendar_by_cal_id, caldav_get_supported_components
-from ..decorators.account_decorators import dependency_principal, auth_required
-from .. import dict_responses
-from ..dict_responses import success_ok
-from ..notifications import notification_views
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+import asyncio
+from typing import AsyncGenerator, Sequence
 
 from quart import request
 from caldav import Principal, Calendar
 import caldav.lib.error as caldav_errs
-from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
 from sqlalchemy.engine import Row
-import asyncio
-from typing import AsyncGenerator, Sequence
 from sqlalchemy.ext.asyncio import AsyncConnection
+
+from ..schemas import UserInDb
+from ..sql_app.crud import YandexCalendar
+from .calendar_backgrounds import run_in_background
+from ..async_wraps.async_wrap_caldav import (
+    caldav_calendar_by_cal_id,
+    caldav_get_supported_components
+)
+from ..decorators.account_decorators import (
+    dependency_principal,
+    auth_required
+)
+from .. import dict_responses
+from ..dict_responses import success_ok
+from ..notifications import notification_views
 
 
 @auth_required
@@ -152,7 +159,7 @@ async def check_exist_calendars_by_cal_id(
         principal: Principal,
         cals: AsyncGenerator[Row, None],
 ) -> list[Calendar] | dict:
-    background_tasks = [asyncio.create_task(caldav_calendar_by_cal_id(principal, cal_id=c.cal_id)) async for c in cals]
+    background_tasks = [caldav_calendar_by_cal_id(principal, cal_id=c.cal_id) async for c in cals]
 
     cals_container = []
     for task in asyncio.as_completed(background_tasks):

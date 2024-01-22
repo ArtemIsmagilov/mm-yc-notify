@@ -1,8 +1,9 @@
-from settings import Conf
-from ..decorators.account_decorators import bot_error
-
 import asyncio
+
 from mattermostautodriver import AsyncDriver
+
+from ..settings import Conf
+from ..decorators.account_decorators import bot_error
 
 bot = AsyncDriver(Conf.MM_BOT_OPTIONS)
 

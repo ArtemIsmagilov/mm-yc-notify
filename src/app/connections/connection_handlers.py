@@ -1,16 +1,29 @@
+import asyncio
+
+from quart import (
+    url_for,
+    request
+)
+from sqlalchemy.ext.asyncio import AsyncConnection
+
 from ..app_handlers import static_file
 from ..calendars.caldav_funcs import take_principal
-from ..constants import EXPAND_DICT, UTCs
-from ..decorators.account_decorators import required_account_does_not_exist, auth_required
+from ..constants import (
+    EXPAND_DICT,
+    UTCs
+)
+from ..decorators.account_decorators import (
+    required_account_does_not_exist,
+    auth_required
+)
 from ..dict_responses import (
-    success_remove_integration, success_create_integration, success_update_integration, success_ok
+    success_remove_integration,
+    success_create_integration,
+    success_update_integration,
+    success_ok
 )
 from ..connections import connection_backgrounds
 from ..schemas import UserInDb
-
-import asyncio
-from quart import url_for, request
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def profile() -> dict:

@@ -1,32 +1,64 @@
-import asyncio, json, logging, caldav.lib.error as caldav_errors
-from dramatiq import actor
+import asyncio
+import json
+import logging
+from datetime import (
+    timedelta,
+    datetime,
+    UTC,
+)
 from textwrap import shorten
-from datetime import timedelta, datetime, UTC
-from caldav import Principal, Calendar
-from sqlalchemy.engine import Row
-from sqlalchemy.ext.asyncio import AsyncConnection
 from typing import Generator
 from zoneinfo import ZoneInfo
 
+from dramatiq import actor
+from caldav import (
+    Principal,
+    Calendar,
+)
+import caldav.lib.error as caldav_errors
+from sqlalchemy.engine import Row
+from sqlalchemy.ext.asyncio import AsyncConnection
+
+
 from ..app_handlers import static_file
 from ..async_wraps.async_wrap_caldav import (
-    caldav_calendar_by_cal_id, caldav_event_by_uid, caldav_get_supported_components
+    caldav_calendar_by_cal_id,
+    caldav_event_by_uid,
+    caldav_get_supported_components
 )
-from ..bots.bot_commands import send_msg_client, update_custom_status, get_user_by_mm_user_id
+from ..bots.bot_commands import (
+    send_msg_client,
+    update_custom_status,
+    get_user_by_mm_user_id
+)
 from ..calendars import caldav_api, caldav_filters
 from ..calendars.caldav_funcs import take_principal
 from ..calendars.caldav_searchers import find_conferences_in_one_cal
 from ..calendars.conference import Conference
 from ..converters import (
-    get_dt_with_UTC_tz_from_iso, iso1_gt_iso2, dont_clear, create_conference_table, create_row_table, equal_conferences,
-    get_delay_with_dtstart, get_delay_daily, conference_all_day, past_conference, to_str_organizer, to_str_attendee
+    get_dt_with_UTC_tz_from_iso,
+    iso1_gt_iso2,
+    dont_clear,
+    create_conference_table,
+    create_row_table,
+    equal_conferences,
+    get_delay_with_dtstart,
+    get_delay_daily,
+    conference_all_day,
+    past_conference,
+    to_str_organizer,
+    to_str_attendee
 )
 from ..notifications import notification_views
 from ..schemas import UserInDb, ConferenceView
-from ..sql_app.crud import YandexConference, YandexCalendar, User
+from ..sql_app.crud import (
+    YandexConference,
+    YandexCalendar,
+    User
+)
 from ..sql_app.database import get_conn
-from ..notifications.worker import *
-from settings import Conf
+from ..settings import Conf
+from .worker import *
 
 
 async def task0():
@@ -110,7 +142,7 @@ async def return_latest_custom_status_job(session: str, latest_custom_status: st
 
             options = json.loads(latest_custom_status)
 
-            asyncio.create_task(update_custom_status(user.mm_user_id, options))
+            await update_custom_status(user.mm_user_id, options)
 
 
 async def change_status_job(session: str, expires_at: str):
@@ -156,7 +188,7 @@ async def change_status_job(session: str, expires_at: str):
 
                 await task4.send_with_options(args=(session, js_current_options), delay=delay)
 
-                asyncio.create_task(update_custom_status(user.mm_user_id, new_options))
+                await update_custom_status(user.mm_user_id, new_options)
 
             elif iso1_gt_iso2(current_options['expires_at'], expires_at) and current_options['emoji'] != 'calendar':
 
@@ -167,10 +199,10 @@ async def change_status_job(session: str, expires_at: str):
 
                 await task4.send_with_options(args=(session, js_current_options), delay=delay)
 
-                asyncio.create_task(update_custom_status(user.mm_user_id, new_options))
+                await update_custom_status(user.mm_user_id, new_options)
 
         if current_options.get('expires_at') is None or iso1_gt_iso2(expires_at, current_options['expires_at']):
-            asyncio.create_task(update_custom_status(user.mm_user_id, new_options))
+            await update_custom_status(user.mm_user_id, new_options)
 
 
 async def notify_next_conference_job(session: str, conf_id: str, dtstart: str) -> None:
@@ -260,7 +292,7 @@ async def notify_next_conference_job(session: str, conf_id: str, dtstart: str) -
                                 "thumb_url": static_file('ya.png'),
                             }
                         ]}
-                    asyncio.create_task(send_msg_client(user.mm_user_id, msg, props))
+                    await send_msg_client(user.mm_user_id, msg, props)
 
                 if user.ch_stat:
                     delay = get_delay_with_dtstart(conf_in_db.dtstart)
@@ -271,7 +303,6 @@ async def notify_next_conference_job(session: str, conf_id: str, dtstart: str) -
 async def daily_notification_job(session: str, hour: int, minute: int):
     async with get_conn() as conn:
         user = await User.get_user_by_session(conn, session)
-
         if not user:
             return
 
@@ -303,7 +334,7 @@ async def daily_notification_job(session: str, hour: int, minute: int):
                 }
             ]}
 
-        asyncio.create_task(send_msg_client(user.mm_user_id, msg, props))
+        await send_msg_client(user.mm_user_id, msg, props)
 
         delay = get_delay_daily(hour, minute)
         task1.send_with_options(args=(session, hour, minute), delay=delay)
@@ -312,7 +343,7 @@ async def daily_notification_job(session: str, hour: int, minute: int):
 async def load_updated_added_deleted_events(
         conn: AsyncConnection,
         user: UserInDb,
-        cal_confs: tuple[Calendar, Generator[Conference, None, None]] | None,
+        cal_confs: tuple[Calendar, Generator[Conference, None, None]],
         notify=True
 ):
     cal, confs = cal_confs

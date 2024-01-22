@@ -1,17 +1,23 @@
-from .calendars.conference import Conference
-from .constants import CONFERENCE_PROPERTIES
-
-from datetime import datetime, UTC
+from datetime import (
+    datetime,
+    UTC
+)
 from zoneinfo import ZoneInfo
+import textwrap
+
 from sqlalchemy.engine import Row
 from caldav import Calendar
-import textwrap, caldav
+import caldav
 from apscheduler.triggers.cron import CronTrigger
+
+from .calendars.conference import Conference
+from .constants import CONFERENCE_PROPERTIES
 
 
 def get_delay_daily(hour: int, minute: int) -> int:
     delay = round(
-        (CronTrigger(hour=hour, minute=minute, timezone=UTC).next() - datetime.now(UTC)).total_seconds()) * 1000
+        (CronTrigger(hour=hour, minute=minute, timezone=UTC).next() - datetime.now(UTC)).total_seconds()
+    ) * 1000
     return delay
 
 

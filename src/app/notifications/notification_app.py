@@ -1,6 +1,6 @@
-from ..notifications import notification_handlers
-
 from quart import Blueprint
+
+from ..notifications import notification_handlers
 
 bp = Blueprint('notifications', __name__, url_prefix='/notifications')
 

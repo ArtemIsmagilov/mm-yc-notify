@@ -1,17 +1,25 @@
+import asyncio
+from typing import (
+    AsyncGenerator,
+    Sequence,
+    Generator
+)
+from datetime import datetime
+
+from caldav import (
+    Calendar,
+    Event
+)
+
 from ..async_wraps.async_wrap_caldav import caldav_search
 from ..calendars.conference import Conference
-
-from datetime import datetime
-from caldav import Calendar, Event
-import asyncio
-from typing import AsyncGenerator, Sequence, Generator
 
 
 async def find_conferences_in_some_cals(
         calendars: Sequence[Calendar],
         dates: tuple[datetime, datetime],
 ) -> AsyncGenerator[Generator[Conference, None, None], None]:
-    tasks_generator = (asyncio.create_task(find_conferences_in_one_cal(cal, dates)) for cal in calendars)
+    tasks_generator = (find_conferences_in_one_cal(cal, dates) for cal in calendars)
 
     for task in asyncio.as_completed(tasks_generator):
         yield await task

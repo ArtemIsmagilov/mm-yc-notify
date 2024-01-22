@@ -1,5 +1,5 @@
 import multiprocessing
-from settings import Conf
+from app.settings import Conf
 
 worker_class = 'uvicorn.workers.UvicornWorker'
 workers = multiprocessing.cpu_count() * 2 + 1
@@ -12,7 +12,7 @@ access_log_format = 'h:%(h)s l:%(l)s u:%(u)s t:%(t)s r:"%(r)s" s:%(s)s b:%(b)s f
 accesslog = '-'
 errorlog = '-'
 loglevel = 'debug'
-wsgi_app = "app:create_app()"
+wsgi_app = 'app:create_app()'
 
 
 # certfile = '/etc/letsencrypt/live/www.example.com/fullchain.pem'

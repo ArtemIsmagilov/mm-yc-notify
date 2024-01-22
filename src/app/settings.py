@@ -1,9 +1,11 @@
-import dotenv, os
+import dotenv
+import os
+import logging
+
+dotenv.load_dotenv()
 
 
 class Conf:
-    dotenv.load_dotenv()
-
     APP_SCHEMA = os.environ['APP_SCHEMA']
     APP_HOST_INTERNAL = os.environ['APP_HOST_INTERNAL']
     APP_PORT_INTERNAL = os.environ['APP_PORT_INTERNAL']
@@ -18,6 +20,7 @@ class Conf:
     RANGE_DAYS = int(os.environ['RANGE_DAYS'])
 
     # quart config
+    QUART_APP = os.environ['QUART_APP']
     SECRET_KEY = os.environ['SECRET_KEY']
     LOG_LEVEL = int(os.environ['LOG_LEVEL'])
     TESTING = True if os.environ['TESTING'].lower() in ('true', 'y', 'yes',) else False
@@ -39,7 +42,7 @@ class Conf:
         'url': MM_HOST_EXTERNAL,
         'port': int(MM_PORT_EXTERNAL),
         'token': MM_APP_TOKEN,
-        # 'debug': self.DEBUG,
+        # 'debug': LOG_LEVEL == 10,
     }
 
     # DB
@@ -61,3 +64,10 @@ class Testing(Conf):
     # test yandex calendars
     test_client_calendar_name1 = os.environ['test_client_calendar_name1']
     test_client_calendar_name2 = os.environ['test_client_calendar_name2']
+
+
+logging.basicConfig(
+    level=Conf.LOG_LEVEL,
+    format='%(levelname)s %(asctime)s [%(filename)s:%(lineno)d] %(msg)s',
+    datefmt='%d-%m-%Y %H:%M:%S %Z'
+)

@@ -1,11 +1,15 @@
 from datetime import datetime
 import asyncio
+
 from caldav import Principal
 import caldav.lib.error as caldav_errs
 
 from . import calendar_views
 from ..dict_responses import timeout_task
-from ..async_wraps.async_wrap_caldav import caldav_calendar_by_cal_id, caldav_get_supported_components
+from ..async_wraps.async_wrap_caldav import (
+    caldav_calendar_by_cal_id,
+    caldav_get_supported_components
+)
 from ..bots.bot_commands import send_ephemeral_msg_client
 from ..sql_app.crud import YandexCalendar
 from ..sql_app.database import get_conn

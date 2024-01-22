@@ -1,9 +1,9 @@
 from dramatiq.middleware import Prometheus
-import dramatiq, os
+import dramatiq
 from dramatiq.middleware.asyncio import AsyncIO
 from dramatiq.brokers.rabbitmq import RabbitmqBroker
 
-from settings import Conf
+from ..settings import Conf
 
 
 # dramatiq app.notifications.tasks

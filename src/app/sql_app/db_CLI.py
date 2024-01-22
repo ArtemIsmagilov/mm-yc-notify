@@ -1,8 +1,13 @@
+import asyncio
+
 from quart import Quart
 import sqlalchemy as sa
-import asyncio, click
+import click
 
-from ..sql_app.database import metadata_obj, get_conn
+from ..sql_app.database import (
+    metadata_obj,
+    get_conn
+)
 
 
 def init_app(app: Quart) -> None:

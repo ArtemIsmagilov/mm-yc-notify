@@ -6,21 +6,42 @@
 # 4. python -m app.notifications.task0_scheduler
 # 5. dramatiq app.notifications.tasks
 
-import asyncio, pytest, json
+import asyncio
+import pytest
+import json
 from copy import deepcopy
 
-from app.async_wraps.async_wrap_caldav import caldav_create_calendar, caldav_calendar_by_name
+from app.async_wraps.async_wrap_caldav import (
+    caldav_create_calendar,
+    caldav_calendar_by_name
+)
 from app.converters import get_h_m_utc
 from app import dict_responses
 from app.notifications.tasks import (
-    daily_notification_job, notify_next_conference_job, change_status_job, return_latest_custom_status_job,
+    daily_notification_job,
+    notify_next_conference_job,
+    change_status_job,
+    return_latest_custom_status_job,
     check_events_job
 )
-from .additional_funcs import (
-    decrease_user, increase_user, increase_calendar, modify_user, increase_conference, get_user, get_calendar
-)
 from .conftest import (
-    Conf, mm_user_id, channel_id, test_principal, test_calendar1, test_calendar2, test_context, test_conference
+    Conf,
+    mm_user_id,
+    channel_id,
+    test_principal,
+    test_calendar1,
+    test_calendar2,
+    test_context,
+    test_conference
+)
+from .additional_funcs import (
+    decrease_user,
+    increase_user,
+    increase_calendar,
+    modify_user,
+    increase_conference,
+    get_user,
+    get_calendar
 )
 
 pytestmark = pytest.mark.asyncio(scope='module')
@@ -1112,7 +1133,7 @@ class TestTasks:
 
         await asyncio.gather(
             asyncio.to_thread(test_calendar1.delete),
-            asyncio.to_thread(test_calendar2.delete),
+            asyncio.to_thread(test_calendar2.delete)
         )
 
         user = await get_user()
@@ -1122,13 +1143,13 @@ class TestTasks:
         assert task is None
 
         await asyncio.gather(
-            asyncio.create_task(caldav_create_calendar(test_principal, name=Conf.test_client_calendar_name1)),
-            asyncio.create_task(caldav_create_calendar(test_principal, name=Conf.test_client_calendar_name2)),
+            caldav_create_calendar(test_principal, name=Conf.test_client_calendar_name1),
+            caldav_create_calendar(test_principal, name=Conf.test_client_calendar_name2)
         )
 
         test_calendar1, test_calendar2 = await asyncio.gather(
             caldav_calendar_by_name(test_principal, Conf.test_client_calendar_name1),
-            caldav_calendar_by_name(test_principal, Conf.test_client_calendar_name2),
+            caldav_calendar_by_name(test_principal, Conf.test_client_calendar_name2)
         )
 
         await decrease_user()
@@ -1190,7 +1211,7 @@ class TestTasks:
 
         await asyncio.gather(
             asyncio.to_thread(test_calendar1.delete),
-            asyncio.to_thread(test_calendar2.delete),
+            asyncio.to_thread(test_calendar2.delete)
         )
 
         await increase_conference(
@@ -1212,12 +1233,12 @@ class TestTasks:
         await decrease_user()
 
         await asyncio.gather(
-            asyncio.create_task(caldav_create_calendar(test_principal, name=Conf.test_client_calendar_name1)),
-            asyncio.create_task(caldav_create_calendar(test_principal, name=Conf.test_client_calendar_name2)),
+            caldav_create_calendar(test_principal, name=Conf.test_client_calendar_name1),
+            caldav_create_calendar(test_principal, name=Conf.test_client_calendar_name2)
         )
 
         test_calendar1 = await caldav_calendar_by_name(test_principal, Conf.test_client_calendar_name1)
-        test_calendar1 = await caldav_calendar_by_name(test_principal, Conf.test_client_calendar_name2)
+        test_calendar2 = await caldav_calendar_by_name(test_principal, Conf.test_client_calendar_name2)
 
     async def test_task2_no_conf_in_db(self):
         global test_calendar1, test_calendar2
@@ -1261,10 +1282,6 @@ class TestTasks:
         task = await change_status_job('sad_session', str(test_conference.dtend))
         assert task is None
 
-    async def test_task3_no_user(self):
-        task = await change_status_job('sad_session', str(test_conference.dtend))
-        assert task is None
-
     async def test_task3_success_in_general(self):
         task = await change_status_job('sad_session', str(test_conference.dtend))
         assert task is None
@@ -1289,7 +1306,6 @@ class TestTasks:
         await decrease_user()
 
     async def test_task0_no_user(self):
-
         assert await check_events_job() is None
 
     @pytest.mark.parametrize('fake_login, fake_token', (

@@ -1,13 +1,18 @@
-from ..dict_responses import already_exists_integration, unauth_integration
+from functools import wraps
+import logging
+import traceback
+
+from quart import request
+from httpx import HTTPError
+
+from ..dict_responses import (
+    already_exists_integration,
+    unauth_integration
+)
 from ..schemas import UserInDb
 from ..sql_app.database import get_conn
 from ..sql_app.crud import User
 from ..calendars.caldav_funcs import take_principal
-
-from functools import wraps
-import logging, traceback
-from quart import request
-from httpx import HTTPError
 
 
 def auth_required(view):
