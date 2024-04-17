@@ -2,7 +2,7 @@ import multiprocessing
 from app.settings import Conf
 
 worker_class = 'uvicorn.workers.UvicornWorker'
-workers = multiprocessing.cpu_count() * 2 + 1
+# workers = multiprocessing.cpu_count() * 2 + 1
 # threads = multiprocessing.cpu_count() * 2 + 1
 
 bind = [f"0.0.0.0:{Conf.APP_PORT_EXTERNAL}"]
