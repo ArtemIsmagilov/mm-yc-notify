@@ -55,8 +55,6 @@ services:
     command: >
       bash -c "pip install -r requirements.txt
       && quart init-db
-      && (python -m app.notifications.task0_scheduler > /dev/stdout 2>&1 &)
-      && (dramatiq app.notifications.tasks > /dev/stdout 2>&1 &)
       && bash run-server.bash
       "
 
@@ -66,5 +64,41 @@ services:
 
     ports:
       - 8090:8090
+
+  scheduler:
+
+    image: "python"
+
+    working_dir: "/app"
+
+    volumes:
+      - "./:/app"
+
+    command: >
+      bash -c "pip install -r requirements.txt
+      && python -m app.notifications.task0_scheduler
+      "
+
+    depends_on:
+      - "db"
+      - "rabbitmq"
+
+  worker:
+
+    image: "python"
+
+    working_dir: "/app"
+
+    volumes:
+      - "./:/app"
+
+    command: >
+      bash -c "pip install -r requirements.txt
+      && dramatiq app.notifications.tasks
+      "
+
+    depends_on:
+      - "db"
+      - "rabbitmq"
 
 #    restart: "unless-stopped"
